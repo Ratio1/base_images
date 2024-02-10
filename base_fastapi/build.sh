@@ -3,7 +3,7 @@
 # Default Python version
 PYTHON_VERSION=${1:-3.10.13}-slim
 
-IMAGE_NAME="aidamian/core_fastapi"
+IMAGE_NAME="aidamian/base_fastapi"
 
 # Replace dots with underscores and remove minor version if it's zero, for tagging purposes
 IMAGE_TAG="py${PYTHON_VERSION}"

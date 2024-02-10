@@ -2,7 +2,7 @@ name: Base FastAPI image
 on: 
   push:
     paths:
-      - 'core_th_llm_fastapi/**'  # Specify path to your directory
+      - 'base_fastapi/**'  # Specify path to your directory
 
 jobs:
   build-and-push-image:
@@ -23,6 +23,6 @@ jobs:
 
       - name: Build and Push
         run: |
-          cd core_th_llm_fastapi/
+          cd base_fastapi/
           chmod +x build.sh  # Ensure the script is executable
           ./build.sh        

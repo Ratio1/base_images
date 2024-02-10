@@ -6,4 +6,4 @@ WORKDIR /aixp_fastapi_app
 
 RUN pip install --no-cache-dir fastapi uvicorn redis numpy pydantic psycopg2-binary python-multipart
 
-ENV AIXP_ENV="core_fastapi_${PYTHON_VERSION}"
+ENV AIXP_ENV="base_fastapi_${PYTHON_VERSION}"

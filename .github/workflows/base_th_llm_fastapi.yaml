@@ -1,8 +1,8 @@
-name: Base FastAPI image
+name: Base Pytorch, Transformers and FastAPI image
 on: 
   push:
     paths:
-      - 'core_fastapi/**'  # Specify path to your directory
+      - 'base_th_llm_fastapi/**'  # Specify path to your directory
 
 jobs:
   build-and-push-image:
@@ -23,6 +23,6 @@ jobs:
 
       - name: Build and Push
         run: |
-          cd core_fastapi/
+          cd base_th_llm_fastapi/
           chmod +x build.sh  # Ensure the script is executable
           ./build.sh        

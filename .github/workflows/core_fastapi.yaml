@@ -2,10 +2,10 @@ name: Base FastAPI image
 on: 
   push:
     paths:
-      - 'base_fastapi/**'  # Specify path to your directory
+      - 'core_fastapi/**'  # Specify path to your directory
 
 jobs:
-  build-and-push-base-fastapi-image:
+  build-and-push-image:
     runs-on: ubuntu-latest
   
     steps:
@@ -23,6 +23,6 @@ jobs:
 
       - name: Build and Push
         run: |
-          cd base_fastapi/
+          cd core_fastapi/
           chmod +x build.sh  # Ensure the script is executable
           ./build.sh        

@@ -1,5 +1,6 @@
 FROM pytorch/pytorch
 
+WORKDIR /aixp_fastapi_app
 
 COPY requirements.txt .
 

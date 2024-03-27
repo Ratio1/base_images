@@ -2,3 +2,4 @@ transformers
 tokenizers
 fastapi
 uvicorn
+kubernetes

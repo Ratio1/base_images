@@ -5,7 +5,7 @@ on:
       - 'base_edge_node/**'  # Specify path to your directory
 
 jobs:
-  build-and-push-image:
+  build-and-push-edge-node-image:
     runs-on: ubuntu-latest
   
     steps:

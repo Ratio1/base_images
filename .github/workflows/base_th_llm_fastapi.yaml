@@ -5,7 +5,7 @@ on:
       - 'base_th_llm_fastapi/**'  # Specify path to your directory
 
 jobs:
-  build-and-push-image:
+  build-and-push-llm-image:
     runs-on: ubuntu-latest
   
     steps:

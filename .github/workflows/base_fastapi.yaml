@@ -5,7 +5,7 @@ on:
       - 'base_fastapi/**'  # Specify path to your directory
 
 jobs:
-  build-and-push-image:
+  build-and-push-fastapi-image:
     runs-on: ubuntu-latest
   
     steps:

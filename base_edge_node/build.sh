@@ -29,4 +29,3 @@ docker tag $FINAL_IMAGE_NAME $IMAGE_NAME:latest
 
 echo "Pushing Docker image ${IMAGE_NAME}:latest"
 docker push $IMAGE_NAME:latest
-

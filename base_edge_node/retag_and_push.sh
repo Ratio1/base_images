@@ -24,3 +24,4 @@ docker tag $IMAGE_NAME $FINAL_IMAGE_NAME
 
 echo "Pushing Docker image $FINAL_IMAGE_NAME"
 docker push $FINAL_IMAGE_NAME
+

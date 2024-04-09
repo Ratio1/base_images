@@ -28,16 +28,16 @@ jobs:
       - name: Build and push GPU
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./base_edge_node/Dockerfile
+          context: ./base_edge_node
+          file: ./Dockerfile
           push: true
           tags: "aidamian/base_edge_node_amd64:latest"
 
       - name: Build and push CPU
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./base_edge_node/Dockerfile_cpu
+          context: ./base_edge_node
+          file: ./Dockerfile_cpu
           push: true
           tags: "aidamian/base_edge_node_amd64_cpu:latest"
 

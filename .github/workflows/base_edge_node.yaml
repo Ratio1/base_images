@@ -29,7 +29,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./base_edge_node
-          file: ./Dockerfile
+          file: ./base_edge_node/Dockerfile
           push: true
           tags: "aidamian/base_edge_node_amd64:latest"
 
@@ -37,7 +37,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./base_edge_node
-          file: ./Dockerfile_cpu
+          file: ./base_edge_node/Dockerfile_cpu
           push: true
           tags: "aidamian/base_edge_node_amd64_cpu:latest"
 

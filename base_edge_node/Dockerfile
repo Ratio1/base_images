@@ -1,7 +1,7 @@
 FROM nvidia/cuda:12.3.2-base-ubuntu20.04
 
 COPY requirements.txt /tmp/requirements.txt
-COPY scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
+COPY ./scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
 WORKDIR /tmp
 ENV TZ=Etc/UTC
 

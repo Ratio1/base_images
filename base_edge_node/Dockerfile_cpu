@@ -1,12 +1,11 @@
-FROM nvidia/cuda:12.3.2-base-ubuntu20.04
+FROM ubuntu:20.04
 
-COPY requirements.txt /tmp/requirements.txt
+COPY requirements_cpu.txt /tmp/requirements.txt
 COPY scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
 WORKDIR /tmp
-ENV TZ=Etc/UTC
 
-# Note we're leaving build-essential behind because torch compile
-# needs a system compiler.
+# Set a default value for the TZ environment variable
+ENV TZ=Etc/UTC
 
 RUN apt-get update && \
   apt-get install -y --no-install-recommends software-properties-common && \
@@ -14,8 +13,7 @@ RUN apt-get update && \
   apt-get update && \
   apt-get install -y --no-install-recommends \
     tzdata \
-    nano \
-    vim && \
+    nano && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
   apt-get install -y --no-install-recommends \
     python3.10 \
@@ -23,8 +21,11 @@ RUN apt-get update && \
   cd /opt && python3.10 -m venv venv && \
   . /opt/venv/bin/activate && \
   cd /tmp && \
+  pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+    torch \
+    torchvision \
+    torchaudio && \
   pip install --no-cache-dir --upgrade -r /tmp/requirements.txt && \
-  pip install --no-cache-dir tensorrt --extra-index-url https://pypi.nvidia.com && \
   apt-get install -y --no-install-recommends \
     wget \
     build-essential \
@@ -36,7 +37,13 @@ RUN apt-get update && \
     ninja-build && \
   pip install --no-cache-dir meson && \
   bash build-ffmpeg.sh && \
-  apt-get purge -y curl cmake wget git ninja-build && \
+  apt-get purge -y \
+    build-essential \
+    wget \
+    curl \
+    git \
+    cmake \
+    ninja-build && \
   apt-get -y autoremove && \
   apt-get -y autoclean && \
   rm -rf /var/lib/apt/lists/* && \
@@ -52,7 +59,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 
 # Set up workdir and the various env variables.
-WORKDIR /ai_edge_node
-
+WORKDIR /exe_eng_base
 ENV AI_ENV="base_edge_node"
 ENV AI_ENV_VER = "0.1.2"

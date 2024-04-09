@@ -25,4 +25,4 @@ jobs:
         run: |
           cd base_fastapi/
           chmod +x build.sh  # Ensure the script is executable
-          ./build.sh        
+          ./build.sh

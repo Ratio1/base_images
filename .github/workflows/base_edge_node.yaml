@@ -41,13 +41,13 @@ jobs:
           push: true
           tags: "aidamian/base_edge_node_amd64_cpu:latest"
 
-      - name: Build and Push GPU
+      - name: Retag and Push GPU
         run: |
           cd base_edge_node/
           chmod +x retag_and_push.sh  # Ensure the script is executable
           ./retag_and_push.sh "aidamian/base_edge_node_amd64:latest"
 
-      - name: Build and Push CPU
+      - name: Retag and Push CPU
         run: |
           cd base_edge_node/
           chmod +x retag_and_push.sh  # Ensure the script is executable

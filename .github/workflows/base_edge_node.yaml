@@ -25,6 +25,10 @@ jobs:
           driver: cloud
           endpoint: "aixpand/aixpbuilder"
 
+      - name: Remove Unused Docker Images
+        run: |
+          docker system prune -af
+
       - name: Build and push GPU
         uses: docker/build-push-action@v5
         with:

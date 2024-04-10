@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.3.2-base-ubuntu20.04
+FROM ubuntu:22.04
 
 COPY requirements.txt /tmp/requirements.txt
 COPY ./scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
@@ -9,7 +9,7 @@ ENV TZ=Etc/UTC
 # needs a system compiler.
 
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends software-properties-common && \
+  apt-get install -y --no-install-recommends software-properties-common gpg-agent && \
   add-apt-repository ppa:deadsnakes/ppa && \
   apt-get update && \
   apt-get install -y --no-install-recommends \

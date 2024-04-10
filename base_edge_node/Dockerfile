@@ -56,3 +56,4 @@ WORKDIR /ai_edge_node
 
 ENV AI_ENV="base_edge_node"
 ENV AI_ENV_VER = "0.1.2"
+

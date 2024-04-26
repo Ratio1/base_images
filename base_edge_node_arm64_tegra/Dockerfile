@@ -23,4 +23,4 @@ RUN apt-get update && apt-get install -y -no-install-recommends tzdata nano vim
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ENV AI_ENV="base_edge_node_tegra"
-ENV AI_ENV_VER = "0.1.2"
+ENV AI_ENV_VER = "0.2.1"

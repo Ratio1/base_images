@@ -1,4 +1,4 @@
-name: Base edge node image build and push
+name: Arm64 Tegra edge node image build and push
 on: 
   push:
     paths:

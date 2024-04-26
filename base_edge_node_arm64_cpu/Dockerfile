@@ -11,9 +11,11 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends \
     tzdata \
     nano && \
+  apt-get install -y --no-install-recommends \
+    python3-pip  && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
   cd /tmp && \
-  pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+  pip3 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
     torch \
     torchvision \
     torchaudio && \

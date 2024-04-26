@@ -38,6 +38,9 @@ jobs:
           tags: "aidamian/base_edge_node_arm64_tegra:latest"
           platforms: linux/arm64
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1          
+
       - name: Retag and Push GPU
         run: |
           cd base_edge_node_arm64_tegra/

@@ -1,14 +1,17 @@
 #!/bin/bash
 
 # Build the image
-IMAGE_NAME_BASE="aidamian/base_edge_node"
+IMAGE_NAME_BASE="aidamian/base_edge_node_arm64_tegra"
 IMAGE_NAME=$1
 
+# setup arm64 docker
+#docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
 # Extract version information
-PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python -c "import platform; print(platform.python_version())")
-TORCH_VERSION=$(docker run --rm $IMAGE_NAME python -c "import torch; print(torch.__version__)")
-TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python -c "import transformers; print(transformers.__version__)")
-MACHINE_VERSION=$(docker run --rm $IMAGE_NAME python -c "import platform; print(platform.machine())")
+PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.python_version())")
+TORCH_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.__version__)")
+TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import transformers; print(transformers.__version__)")
+MACHINE_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.machine())")
 
 # Normalize version information for tagging
 PYTHON_VERSION_NORMALIZED="py$(echo $PYTHON_VERSION | tr -d '[:space:]' | sed -r 's/\+/\./g')"

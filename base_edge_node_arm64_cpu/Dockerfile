@@ -45,6 +45,16 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/* && \
   pip uninstall -y meson
 
+# Download and install ngrok
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+  curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz > /tmp/ngrok.tgz && \
+  tar xf /tmp/ngrok.tgz -C /usr/local/bin && \
+  rm /tmp/ngrok.tgz && \
+  apt-get purge -y curl && \
+  apt-get -y autoremove && \
+  apt-get -y autoclean && \
+  rm -rf /var/lib/apt/lists/*
+
 # Make sure we look for shared objects in /usr/local/lib
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 

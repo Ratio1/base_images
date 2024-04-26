@@ -17,7 +17,13 @@ WORKDIR /ai_edge_node
 RUN pip install --no-cache-dir --upgrade -r /tmp/requirements.txt
 
 # Install tzdata if it's not available in your base image.
-RUN apt-get update && apt-get install -y --no-install-recommends tzdata nano vim
+RUN apt-get update && apt-get install -y --no-install-recommends tzdata nano vim curl
+
+# Download and install ngrok
+RUN curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz > /tmp/ngrok.tgz && \
+  tar xf /tmp/ngrok.tgz -C /usr/local/bin && \
+  rm /tmp/ngrok.tgz
+
 
 # Use the TZ variable to set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

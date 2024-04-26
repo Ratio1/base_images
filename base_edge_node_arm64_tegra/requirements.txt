@@ -15,7 +15,6 @@ paho-mqtt
 gql
 requests_toolbelt
 minio
-backports-zoneinfo
 cryptography
 accelerate
 bitsandbytes

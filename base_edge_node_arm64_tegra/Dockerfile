@@ -7,7 +7,7 @@ ENV TZ=Etc/UTC
 RUN git clone git://source.ffmpeg.org/ffmpeg.git ffmpeg && \
   cd ffmpeg && \
   ./configure && \
-  make && \
+  make -j8 && \
   make install && \
   cd /tmp && \
   rm -rf /tmp/ffmpeg

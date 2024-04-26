@@ -43,13 +43,13 @@ jobs:
           platforms: linux/arm64
 
       # if emulation does not work we have to drop the retagging and pushing steps below
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1          
-
-      - name: Retag and Push GPU
-        run: |
-          cd base_edge_node_arm64_tegra/
-          chmod +x retag_and_push_arm64_tegra.sh  # Ensure the script is executable
-          ./retag_and_push_arm64_tegra.sh "aidamian/base_edge_node_arm64_tegra:latest"
+      # Note we would ideally like to retag this but for some reason doesn't work.
+      #- name: Set up QEMU
+      #  uses: docker/setup-qemu-action@v1          
+      #
+      #- name: Retag and Push GPU
+      #  run: |
+      #    cd base_edge_node_arm64_tegra/
+      #    chmod +x retag_and_push_arm64_tegra.sh  # Ensure the script is executable
+      #    ./retag_and_push_arm64_tegra.sh "aidamian/base_edge_node_arm64_tegra:latest"
 

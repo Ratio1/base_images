@@ -17,7 +17,7 @@ WORKDIR /ai_edge_node
 RUN pip install --no-cache-dir --upgrade -r /tmp/requirements.txt
 
 # Install tzdata if it's not available in your base image.
-RUN apt-get update && apt-get install -y -no-install-recommends tzdata nano vim
+RUN apt-get update && apt-get install -y --no-install-recommends tzdata nano vim
 
 # Use the TZ variable to set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

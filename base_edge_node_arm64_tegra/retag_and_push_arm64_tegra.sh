@@ -5,7 +5,8 @@ IMAGE_NAME_BASE="aidamian/base_edge_node_arm64_tegra"
 IMAGE_NAME=$1
 
 # setup arm64 docker
-#docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+docker pull $IMAGE_NAME
 
 # Extract version information
 PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.python_version())")

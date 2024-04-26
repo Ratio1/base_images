@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 COPY requirements.txt /tmp/requirements.txt
-COPY ../base_edge_node/scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
+COPY scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
 WORKDIR /tmp
 
 # Set a default value for the TZ environment variable

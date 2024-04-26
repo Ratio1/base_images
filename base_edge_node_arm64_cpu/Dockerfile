@@ -12,7 +12,8 @@ RUN apt-get update && \
     tzdata \
     nano && \
   apt-get install -y --no-install-recommends \
-    python3-pip  && \
+    python3-pip \
+    python3-dev && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
   cd /tmp && \
   pip3 install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \

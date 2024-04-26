@@ -38,6 +38,8 @@ jobs:
           tags: "aidamian/base_edge_node_arm64_tegra:latest"
           platforms: linux/arm64
 
+      # if emulation does not work we have to drop the retagging and pushing steps below
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1          
 

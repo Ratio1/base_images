@@ -3,3 +3,38 @@ tokenizers
 fastapi
 uvicorn
 kubernetes
+pandas
+gensim
+seaborn
+scikit-learn 
+scikit-image 
+pymssql 
+h5py 
+unidecode
+# overwrite Werkzeug==2.2.2 
+Werkzeug==2.2.2 
+accelerate
+bitsandbytes
+# install peft - a pdf text extractor
+peft
+# install python-telegram-bot - a telegram bot api
+python-telegram-bot
+# base openai  lib
+openai
+# support for .env file with keys
+python-dotenv
+# langchain package
+langchain
+#pip install "langchain[docarray]"
+# pdf boilerplate
+pypdf
+# youtube downloader
+yt_dlp
+# audio processing
+pydub
+# token splitting
+tiktoken
+# text breakdown
+sentencepiece
+# lark is a parser
+lark

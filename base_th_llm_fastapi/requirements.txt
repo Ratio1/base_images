@@ -11,6 +11,7 @@ scikit-image
 pymssql 
 h5py 
 unidecode
+flask
 # overwrite Werkzeug==2.2.2 
 Werkzeug==2.2.2 
 accelerate

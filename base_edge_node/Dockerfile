@@ -54,6 +54,5 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 # Set up workdir and the various env variables.
 WORKDIR /ai_edge_node
 
-
 ENV AI_ENV="base_edge_node"
 ENV AI_ENV_VER = "0.1.3"

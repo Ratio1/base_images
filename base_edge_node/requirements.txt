@@ -29,7 +29,6 @@ onnx
 openvino
 onnxruntime-openvino
 onnxsim
-jupyter
 fastapi
 uvicorn
 pydantic

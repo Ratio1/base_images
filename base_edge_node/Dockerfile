@@ -7,57 +7,47 @@ ENV TZ=Etc/UTC
 
 # Note we're leaving build-essential behind because torch compile
 # needs a system compiler.
-
+# Note: tensor-rt forced to 8.6.1 to avoid the new 10.0 experimental release.
 RUN apt-get update && \
   apt-get install -y --no-install-recommends software-properties-common gpg-agent && \
-  add-apt-repository ppa:deadsnakes/ppa && \
-  apt-get update && \
   apt-get install -y --no-install-recommends \
     tzdata \
     nano \
     vim && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
   apt-get install -y --no-install-recommends \
-    python3.10 \
-    python3.10-venv && \
-  cd /opt && python3.10 -m venv venv && \
-  . /opt/venv/bin/activate && \
+    python3-pip \
+    python3-dev && \
   cd /tmp && \
-  pip install --no-cache-dir --upgrade -r /tmp/requirements.txt && \
-  pip install --no-cache-dir tensorrt --extra-index-url https://pypi.nvidia.com && \
+  pip3 install --no-cache-dir --upgrade -r /tmp/requirements.txt && \
+  pip3 install --no-cache-dir "tensorrt==8.6.1" --extra-index-url https://pypi.nvidia.com && \
   apt-get install -y --no-install-recommends \
     wget \
     build-essential \
-    curl \
     git \
     nasm \
     cmake \
     pkg-config \
-    ninja-build && \
-  pip install --no-cache-dir meson && \
+    ninja-build \
+    curl && \
+  pip3 install --no-cache-dir meson && \
   bash build-ffmpeg.sh && \
-  apt-get purge -y curl cmake wget git ninja-build && \
+  apt-get purge -y cmake wget git ninja-build && \
   apt-get -y autoremove && \
   apt-get -y autoclean && \
   rm -rf /var/lib/apt/lists/* && \
-  pip uninstall -y meson
+  pip3 uninstall -y meson && \
+  rm -rf /root/.cache
 
 # Download and install ngrok
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
-  curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz > /tmp/ngrok.tgz && \
+RUN curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz > /tmp/ngrok.tgz && \
   tar xf /tmp/ngrok.tgz -C /usr/local/bin && \
-  rm /tmp/ngrok.tgz && \
-  apt-get purge -y curl  && \
-  apt-get -y autoremove && \
-  apt-get -y autoclean && \
-  rm -rf /var/lib/apt/lists/*
+  rm /tmp/ngrok.tgz
 
 # Disable openvino telemetry
 RUN mkdir -p /root/intel && echo 0 > "/root/intel/openvino_telemetry"
 RUN mkdir -p /intel && echo 0 > "/intel/openvino_telemetry" && chmod o+r /intel/openvino_telemetry
 
-# Use the created venv by default
-ENV PATH="/opt/venv/bin:$PATH"
 # Make sure we look for shared objects in /usr/local/lib
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 
@@ -65,5 +55,5 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 WORKDIR /ai_edge_node
 
 ENV AI_ENV="base_edge_node"
-ENV AI_ENV_VER = "0.1.2"
+ENV AI_ENV_VER = "0.1.3"
 

@@ -7,20 +7,16 @@ ENV TZ=Etc/UTC
 
 # Note we're leaving build-essential behind because torch compile
 # needs a system compiler.
-# Note: tensor-rt forced to 8.6.1 to avoid the new 10.0 experimental release.
 RUN apt-get update && \
   apt-get install -y --no-install-recommends software-properties-common gpg-agent && \
   apt-get install -y --no-install-recommends \
     tzdata \
-    nano \
-    vim && \
+    nano && \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
   apt-get install -y --no-install-recommends \
     python3-pip \
     python3-dev && \
   cd /tmp && \
-  pip3 install --no-cache-dir --upgrade -r /tmp/requirements.txt && \
-  pip3 install --no-cache-dir "tensorrt==8.6.1" --extra-index-url https://pypi.nvidia.com && \
   apt-get install -y --no-install-recommends \
     wget \
     build-essential \
@@ -39,10 +35,19 @@ RUN apt-get update && \
   pip3 uninstall -y meson && \
   rm -rf /root/.cache
 
+RUN df -h
+
 # Download and install ngrok
 RUN curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz > /tmp/ngrok.tgz && \
   tar xf /tmp/ngrok.tgz -C /usr/local/bin && \
   rm /tmp/ngrok.tgz
+
+RUN df -h
+
+# Note: tensor-rt forced to 8.6.1 to avoid the new 10.0 experimental release.
+RUN  pip3 install --no-cache-dir --upgrade -r /tmp/requirements.txt && \
+  pip3 install --no-cache-dir "tensorrt==8.6.1" --extra-index-url https://pypi.nvidia.com && \
+  rm -rf /root/.cache
 
 # Disable openvino telemetry
 RUN mkdir -p /root/intel && echo 0 > "/root/intel/openvino_telemetry"

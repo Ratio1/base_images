@@ -32,3 +32,5 @@ onnxsim
 fastapi
 uvicorn
 pydantic
+bs4
+web3

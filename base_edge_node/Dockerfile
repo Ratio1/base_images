@@ -44,9 +44,11 @@ RUN curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz > 
 
 RUN df -h
 
-# Note: tensor-rt forced to 8.6.1 to avoid the new 10.0 experimental release.
 RUN  pip3 install --no-cache-dir --upgrade -r /tmp/requirements.txt && \
-  pip3 install --no-cache-dir "tensorrt==8.6.1" --extra-index-url https://pypi.nvidia.com && \
+   rm -rf /root/.cache
+
+# Note: tensor-rt forced to 8.6.1 to avoid the new 10.0 experimental release.
+RUN  pip3 install --no-cache-dir "tensorrt==8.6.1" --extra-index-url https://pypi.nvidia.com && \
   rm -rf /root/.cache
 
 # Disable openvino telemetry

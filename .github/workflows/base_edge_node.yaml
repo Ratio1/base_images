@@ -28,12 +28,14 @@ jobs:
       - name: Cleanup space
         run: |
           df -h
+          docker buildx du
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           docker images
           docker system prune -af
+          docker buildx du
           df -h
 
       - name: Build and push GPU

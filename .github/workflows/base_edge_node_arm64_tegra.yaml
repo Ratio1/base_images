@@ -27,11 +27,14 @@ jobs:
 
       - name: Cleanup space
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          docker system prune -af
+          echo "===========docker buildx du ==================="
+          docker buildx du
+          echo "===========docker buildx prune -f. Add -af if any other space issues. ============"
+          docker buildx prune -f
+          echo "===========docker buildx du ================="
+          docker buildx du
+          echo "========================================"
+
 
       - name: Build and push GPU
         uses: docker/build-push-action@v5

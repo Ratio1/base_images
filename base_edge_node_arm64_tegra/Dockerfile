@@ -29,4 +29,4 @@ RUN curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz > 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ENV AI_ENV="base_edge_node_tegra"
-ENV AI_ENV_VER = "0.2.1"
+ENV AI_ENV_VER = "0.2.4"

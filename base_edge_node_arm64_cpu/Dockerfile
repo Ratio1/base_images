@@ -61,4 +61,4 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 # Set up workdir and the various env variables.
 WORKDIR /exe_eng_base
 ENV AI_ENV="base_edge_node_arm64_cpu"
-ENV AI_ENV_VER = "0.1.2"
+ENV AI_ENV_VER = "0.1.4"

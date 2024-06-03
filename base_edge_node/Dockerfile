@@ -62,4 +62,4 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 WORKDIR /ai_edge_node
 
 ENV AI_ENV="base_edge_node"
-ENV AI_ENV_VER = "0.1.3"
+ENV AI_ENV_VER = "0.1.4"

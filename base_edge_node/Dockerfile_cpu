@@ -59,6 +59,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
   apt-get -y autoclean && \
   rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl  && \
+    apt-get install -y --no-install-recommends mosquitto mosquitto-clients && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh && \
+    bash nodesource_setup.sh && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -f nodesource_setup.sh && \
+    rm -rf /var/lib/apt/lists/*
+
 # Disable openvino telemetry
 RUN mkdir -p /root/intel && echo 0 > "/root/intel/openvino_telemetry"
 RUN mkdir -p /intel && echo 0 > "/intel/openvino_telemetry" && chmod o+r /intel/openvino_telemetry
@@ -71,4 +80,4 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 # Set up workdir and the various env variables.
 WORKDIR /exe_eng_base
 ENV AI_ENV="base_edge_node"
-ENV AI_ENV_VER = "0.1.2"
+ENV AI_ENV_VER = "0.1.5"

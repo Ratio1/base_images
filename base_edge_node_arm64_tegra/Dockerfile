@@ -24,9 +24,16 @@ RUN curl https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz > 
   tar xf /tmp/ngrok.tgz -C /usr/local/bin && \
   rm /tmp/ngrok.tgz
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends mosquitto mosquitto-clients && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh && \
+    bash nodesource_setup.sh && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -f nodesource_setup.sh && \
+    rm -rf /var/lib/apt/lists/*
 
 # Use the TZ variable to set the timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ENV AI_ENV="base_edge_node_tegra"
-ENV AI_ENV_VER = "0.2.4"
+ENV AI_ENV_VER = "0.2.5"

@@ -51,6 +51,14 @@ RUN  pip3 install --no-cache-dir --upgrade -r /tmp/requirements.txt && \
 RUN  pip3 install --no-cache-dir "tensorrt==8.6.1" --extra-index-url https://pypi.nvidia.com && \
   rm -rf /root/.cache
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends mosquitto mosquitto-clients && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh && \
+    bash nodesource_setup.sh && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -f nodesource_setup.sh && \
+    rm -rf /var/lib/apt/lists/*
+
 # Disable openvino telemetry
 RUN mkdir -p /root/intel && echo 0 > "/root/intel/openvino_telemetry"
 RUN mkdir -p /intel && echo 0 > "/intel/openvino_telemetry" && chmod o+r /intel/openvino_telemetry
@@ -62,4 +70,4 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 WORKDIR /ai_edge_node
 
 ENV AI_ENV="base_edge_node"
-ENV AI_ENV_VER = "0.1.4"
+ENV AI_ENV_VER = "0.1.5"

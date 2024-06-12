@@ -55,6 +55,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
   apt-get -y autoclean && \
   rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends mosquitto mosquitto-clients && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh && \
+    bash nodesource_setup.sh && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -f nodesource_setup.sh && \
+    rm -rf /var/lib/apt/lists/*
+
 # Make sure we look for shared objects in /usr/local/lib
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 

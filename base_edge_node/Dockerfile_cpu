@@ -60,7 +60,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
   rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl  && \
+    apt-get install -y --no-install-recommends curl git  && \
     apt-get install -y --no-install-recommends mosquitto mosquitto-clients && \
     curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh && \
     bash nodesource_setup.sh && \
@@ -80,4 +80,4 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 # Set up workdir and the various env variables.
 WORKDIR /exe_eng_base
 ENV AI_ENV="base_edge_node"
-ENV AI_ENV_VER = "0.1.5"
+ENV AI_ENV_VER = "0.1.6"

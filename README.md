@@ -1,4 +1,4 @@
-# Repository for varios base images for production and development environments
+# Repository for various base images for production and development environments
 
 
 ## Base images

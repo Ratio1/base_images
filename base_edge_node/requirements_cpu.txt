@@ -7,8 +7,8 @@ minio
 gql
 opencv-python-headless
 decord
-accelerate
-bitsandbytes
+accelerate==0.30.1
+bitsandbytes==0.43.1
 tokenizers>=0.14.1
 sentencepiece
 seaborn
@@ -21,10 +21,10 @@ pymssql
 h5py
 unidecode
 transformers>=4.38.0
-cryptography
+cryptography==42.0.7
 onnx
-openvino
-onnxruntime-openvino
+openvino==2024.1.0
+onnxruntime-openvino==1.17.1
 onnxsim
 fastapi
 uvicorn

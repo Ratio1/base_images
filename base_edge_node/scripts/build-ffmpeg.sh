@@ -64,7 +64,9 @@ rm -rf SVT-AV1
 # used in the conda-forge build.
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
 cd ffmpeg
-git checkout release/6.1
+
+# ffmpeg version n6.1.1-34-g5e45c27ba9
+git checkout 5e45c27ba9baf576e548e226162be7e104328cc0
 ./configure \
   --disable-doc \
   --disable-openssl \

@@ -19,7 +19,7 @@ requests_toolbelt
 minio
 cryptography
 accelerate==0.30.1
-bitsandbytes==0.43.1
+bitsandbytes
 tokenizers>=0.14.1
 #sentencepiece
 pyarrow>=15

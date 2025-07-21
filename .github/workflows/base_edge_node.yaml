@@ -23,7 +23,7 @@ jobs:
         with:
           version: "lab:latest"
           driver: cloud
-          endpoint: "aixpand/aixpbuilder"
+          endpoint: "naeural/naeural-builder"
 
       - name: Cleanup space
         run: |

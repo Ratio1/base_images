@@ -38,7 +38,6 @@ RUN mkdir -p /etc/apt/keyrings && \
     containerd.io \
     && rm -rf /var/lib/apt/lists/*
 
-
 # Configure user namespace remapping
 RUN set -eux; \
     addgroup --system dockremap; \

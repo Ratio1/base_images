@@ -34,6 +34,19 @@ Target: modernize all base images (OS, Python, PyTorch), converge on consistent 
 - Add a small smoke test script per image (`python - <<'PY'` printing platform, torch, transformers, cuda availability) for CI validation.
   - References: PyTorch install matrix https://pytorch.org/get-started/locally/; CUDA 12.4 wheels https://download.pytorch.org/whl/cu124; L4T PyTorch container catalog https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch.
 
+## 5a) Runtime Test Scripts (current → future split)
+- Current scripts:  
+  - `base_edge_node/test_image.sh`: builds GPU by default, CPU via `--cpu`; runs version checks (python/pip/ffmpeg/node/ngrok, torch/transformers/onnx/openvino/tensorrt) and nested Docker with `pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime` (GPU) or `ratio1/pytorch:cpu-latest` (CPU). Requires `/var/run/docker.sock`; uses `--gpus all` when GPU.  
+  - `base_edge_node_arm64_cpu/test_image.sh`: builds ARM64 CPU, checks torch/transformers/onnx, ffmpeg, and runs nested torch `ratio1/pytorch:cpu-latest` with `--platform linux/arm64`.  
+  - `base_edge_node_arm64_tegra/test_image.sh`: builds Tegra image, requires `--runtime nvidia`; checks GPU torch stack and runs nested `pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime` (works only on NVIDIA runtime). Nested run should be marked “on-device only”.  
+  - `base_edge_node_dind/test_image.sh`: builds GPU/CPU DinD layers, boots inner dockerd with `--privileged`, validates docker info, torch stack, and runs nested torch (`ratio1/pytorch:cpu-latest` by default; `--nested-use-gpu` swaps to the GPU torch image).
+- Best practices to carry into refactor (when splitting to `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, `base_edge_node_arm64_cpu`, `base_edge_node_arm64_tegra`, and the DinD-enabled variants):  
+  - Keep nested container checks gated and optional (`SKIP_NESTED`), require `/var/run/docker.sock`, and set `DOCKER_HOST=unix:///var/run/docker.sock` with a bind of the `docker` binary.  
+  - Use resource-aware flags (`--shm-size`, `--gpus all` or `--runtime nvidia`) and short smoke tests (torch/transformers versions, CUDA availability, ffmpeg codecs top lines).  
+  - For Tegra, declare that runtime validation must occur on real hardware; CI/QEMU should only syntax-check.  
+  - Align nested images with the chosen torch/CUDA matrix (current GPU: `pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime`; CPU: `ratio1/pytorch:cpu-latest` from the local builder).  
+  - After the directory split, rename/move scripts accordingly and wire them into CI matrix jobs as post-build smoke tests.
+
 ## 6) TensorRT Upgrade Path
 - amd64 GPU: evaluate the latest stable TensorRT (10.x) from NVIDIA PyPI (`--extra-index-url https://pypi.nvidia.com`). Keep a hard pin (e.g., `tensorrt==10.4.x`) matching CUDA 12.x and the chosen torch version; add a build arg to fall back to 8.6.1 if regressions appear.
 - Jetson: rely on JetPack-bundled TensorRT (apt packages `libnvinfer*`); do not pip-upgrade. Document the JetPack/TRT version and expose it via an image label.

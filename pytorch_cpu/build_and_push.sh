@@ -61,7 +61,14 @@ docker push "${final_tag}"
 
 published="${final_tag}"
 
+echo "Mandatory pytorch:cpu push"
+echo "Tagging ${tmp_tag} as ${image_base}:cpu"
+docker tag "${tmp_tag}" "${image_base}:cpu"
+echo "Pushing ${image_base}:cpu"
+docker push "${image_base}:cpu"
+
 if [[ -n "${alias_tag}" ]]; then
+  echo "Optional pytorch:cpu push with alias ${alias_tag}"
   alias_full="${image_base}:${alias_tag}"
   echo "Tagging ${tmp_tag} as ${alias_full}"
   docker tag "${tmp_tag}" "${alias_full}"

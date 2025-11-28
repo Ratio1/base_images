@@ -6,7 +6,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 image_tag="${IMAGE_TAG:-ratio1/base_edge_node_arm64_cpu:test}"
-nested_torch_image="${NESTED_TORCH_IMAGE:-pytorch/pytorch:2.3.1-cpu}"
+nested_torch_image="${NESTED_TORCH_IMAGE:-ratio1/pytorch:cpu-latest}"
 nested_platform="${NESTED_TORCH_PLATFORM:-linux/arm64}"
 skip_nested="${SKIP_NESTED:-0}"
 

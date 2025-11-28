@@ -71,7 +71,7 @@ if [[ "$variant" == "gpu" ]]; then
 fi
 
 if [[ "$variant" == "gpu" && "${nested_use_gpu}" -eq 1 && "${NESTED_TORCH_IMAGE:-}" == "" ]]; then
-  nested_torch_image="pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime"
+  nested_torch_image="pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime"
 fi
 
 echo "Building ${image_tag} using ${dockerfile}..."

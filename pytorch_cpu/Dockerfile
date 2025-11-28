@@ -1,4 +1,5 @@
-FROM python:3.13-slim
+ARG PYTHON_VERSION=3.13-slim
+FROM python:${PYTHON_VERSION}
 
 ARG TORCH_INDEX_URL="https://download.pytorch.org/whl/cpu"
 
@@ -17,4 +18,4 @@ import torch
 print(f"torch {torch.__version__} (cpu) installed")
 PY
 
-CMD ["python3", "-c", "import numpy; print(f'Numpy: {numpy.__version__}'); import torch; print(f'Torch: {torch.__version__}')"]
+CMD ["python3", "-c", "import sys; print(f'Python {sys.version}'); import numpy; print(f'Numpy: {numpy.__version__}'); import torch; print(f'Torch: {torch.__version__}')"]

@@ -8,7 +8,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 image_tag="${IMAGE_TAG:-ratio1/base_edge_node:test}"
 dockerfile="Dockerfile"
 variant="gpu"
-nested_torch_image="${NESTED_TORCH_IMAGE:-pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime}"
+nested_torch_image="${NESTED_TORCH_IMAGE:-pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime}"
 skip_nested="${SKIP_NESTED:-0}"
 
 usage() {

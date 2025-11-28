@@ -33,36 +33,49 @@ Target: modernize all base images (OS, Python, PyTorch), converge on consistent 
 - FastAPI + LLM base: align with the same torch/transformers versions to reduce cache misses and dependency drift.
 - Jetson: match NVIDIA’s L4T PyTorch release for r36.2 (JetPack 6). If a newer L4T-PyTorch tag exists, bump to it; otherwise keep r36.2 torch and document pinning.
 - Add a small smoke test script per image (`python - <<'PY'` printing platform, torch, transformers, cuda availability) for CI validation.
+  - References: PyTorch install matrix https://pytorch.org/get-started/locally/; CUDA 12.4 wheels https://download.pytorch.org/whl/cu124; L4T PyTorch container catalog https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch.
 
-## 6) DinD Integration (all images)
+## 6) TensorRT Upgrade Path
+- amd64 GPU: evaluate the latest stable TensorRT (10.x) from NVIDIA PyPI (`--extra-index-url https://pypi.nvidia.com`). Keep a hard pin (e.g., `tensorrt==10.0.x`) matching CUDA 12.x and the chosen torch version; add a build arg to fall back to 8.6.1 if regressions appear.
+- Jetson: rely on JetPack-bundled TensorRT (apt packages `libnvinfer*`); do not pip-upgrade. Document the JetPack/TRT version and expose it via an image label.
+- FastAPI/CPU-only images: omit TensorRT to reduce size; keep the install optional behind a build arg.
+- Testing: run `trtexec --version` and a minimal engine build to verify CUDA/cuDNN alignment in CI for amd64; for Jetson mark runtime validation as on-device only.
+  - Reference: TensorRT release notes https://docs.nvidia.com/deeplearning/tensorrt/release-notes/.
+
+## 7) DinD Integration (all images)
 - Embed Docker CE (rootless preferred) inside each edge image with opt-in via `EE_DD=true`. Provide two entrypoints: normal app entrypoint and `dockerd-entrypoint.sh`.
 - Upgrade Docker CE to the latest LTS (e.g., 27.x+), use `fuse-overlayfs` and `uidmap`, set `DOCKER_TLS_CERTDIR` with auto-generated certs, and allow `EE_DD=false` to skip daemon start.
 - Harden: drop capabilities where possible, purge build tools after install, and enable log rotation defaults.
 - Remove the standalone `base_edge_node_dind` directory after migration; keep a compatibility tag that points to the new amd64 DinD-enabled GPU image.
+  - References: Docker CE release notes https://docs.docker.com/engine/release-notes/; Rootless mode https://docs.docker.com/engine/security/rootless/; DinD security guidance https://docs.docker.com/engine/security/protect-access/#docker-in-docker.
 
-## 7) arm64 Pi Optimization
+## 8) arm64 Pi Optimization
 - Base: `arm64v8/ubuntu:24.04` (or `debian:bookworm-slim` if smaller) with `--platform=linux/arm64/v8` buildx.
 - Python: from deadsnakes 3.13 or compiled once in a builder stage; install minimal build deps then purge. Prefer `pip --no-cache-dir` and `--extra-index-url https://download.pytorch.org/whl/cpu` if using torch CPU wheels.
 - ffmpeg: reuse a common multi-stage builder; copy only binaries and libs. Consider disabling heavy codecs on Pi to save space.
 - Enable `arm_64bit=1` expectation, ensure `pi` friendly sysctl not assumed; keep `nano/vim` optional.
+  - References: Ubuntu arm64 images https://hub.docker.com/_/ubuntu; Raspberry Pi Docker build guidance https://docs.docker.com/build/arm/.
 
-## 8) arm64 Tegra Optimization
+## 9) arm64 Tegra Optimization
 - Stay on `dustynv/l4t-pytorch:<matching JP>`; confirm JetPack 6.0 GA tag and CUDA/cuDNN versions. Only rebuild ffmpeg if the base lacks needed codecs; otherwise rely on NVIDIA-provided multimedia stack.
 - Avoid upgrading to Ubuntu 24.04 until NVIDIA ships it. Note that Python 3.13 may not be supported; keep Python version tied to the L4T image (likely 3.10/3.11). If 3.13 is required, document it as blocked and add a conditional build arg.
 - Use `--runtime nvidia` expectations; test on-device or via QEMU for syntax only, with runtime tests marked “manual on Jetson”.
+  - References: JetPack downloads/compatibility https://developer.nvidia.com/embedded/jetpack; L4T PyTorch container https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch.
 
-## 9) FastAPI Bases Alignment
+## 10) FastAPI Bases Alignment
 - Rebase `base_fastapi` and `base_th_llm_fastapi` onto the new amd64 CPU base to inherit Python 3.13 and system deps. Switch to `pip install --no-cache-dir` and drop redundant package installs.
 - Pin transformers to a version compatible with the upgraded torch; add minimal healthcheck script (import torch/transformers/uvicorn).
+  - References: FastAPI Docker deployment guide https://fastapi.tiangolo.com/deployment/docker/.
 
-## 10) CI/CD Refactor
+## 11) CI/CD Refactor
 - Consolidate workflows into a matrix: axes for `{arch: amd64, arm64, tegra}` and `{variant: gpu, cpu, dind}` where applicable; reuse a single workflow with conditional include/exclude rules.
 - Use `docker/setup-buildx-action@v3` with `driver: docker-container` and `cache-from/cache-to: type=gha,mode=max`.
 - Add QEMU setup for cross builds, and leverage `docker/metadata-action` for tags/labels and SBOM/attestations (`docker/build-push-action` supports `provenance`).
 - Integrate the new smoke tests post-build (run containers, print torch/transformers/cuda info). For Jetson, gate runtime tests behind a manual “device” job.
 - Replace manual retag scripts with buildx-driven multi-tag outputs; keep legacy tags via `--tag` list in a single build step.
+  - References: Buildx docs https://docs.docker.com/build/buildx/; QEMU setup https://github.com/docker/setup-qemu-action; metadata/provenance https://github.com/docker/metadata-action.
 
-## 11) Execution Sequence (phased)
+## 12) Execution Sequence (phased)
 1. Define common base snippets (Python install, ffmpeg builder, DinD entrypoint) and update AGENTS.md with the new matrix and tag scheme.
 2. Implement amd64 CPU/GPU Dockerfiles on Ubuntu 24.04 + Python 3.13; upgrade torch/transformers; embed DinD entrypoint; deprecate `base_edge_node` alias.
 3. Port Pi image to 24.04 (or Debian slim), add multi-stage ffmpeg, Python 3.13, torch CPU wheels, and size/boot-time trims.
@@ -72,7 +85,7 @@ Target: modernize all base images (OS, Python, PyTorch), converge on consistent 
 7. Refactor GitHub Actions into a matrix workflow with caching, metadata, SBOM, and smoke tests.
 8. Run end-to-end builds (amd64, arm64 via QEMU; Jetson syntax-only) and push to staging tags; verify runtime on actual devices for Pi/Jetson before promoting `latest`.
 
-## 12) Risk & Mitigation Notes
+## 13) Risk & Mitigation Notes
 - Python 3.13 + PyTorch: watch official wheel availability; keep a toggle to fall back to 3.12 without blocking the refactor.
 - Jetson OS jump: blocked until NVIDIA publishes 24.04-based L4T; document the exception and avoid forced upgrade.
 - DinD in all images: ensure it remains optional to avoid bloating non-Docker use cases; keep entrypoint selectable.

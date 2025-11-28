@@ -42,7 +42,7 @@ jobs:
           context: ./base_edge_node_arm64_tegra
           file: ./base_edge_node_arm64_tegra/Dockerfile
           push: true
-          tags: "aidamian/base_edge_node_arm64_tegra:latest"
+          tags: "ratio1/base_edge_node_arm64_tegra:latest"
           platforms: linux/arm64
 
       # if emulation does not work we have to drop the retagging and pushing steps below
@@ -54,5 +54,5 @@ jobs:
       #  run: |
       #    cd base_edge_node_arm64_tegra/
       #    chmod +x retag_and_push_arm64_tegra.sh  # Ensure the script is executable
-      #    ./retag_and_push_arm64_tegra.sh "aidamian/base_edge_node_arm64_tegra:latest"
+      #    ./retag_and_push_arm64_tegra.sh "ratio1/base_edge_node_arm64_tegra:latest"
 

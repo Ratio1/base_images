@@ -41,5 +41,5 @@ jobs:
           context: ./base_edge_node_arm64_cpu
           file: ./base_edge_node_arm64_cpu/Dockerfile
           push: true
-          tags: "aidamian/base_edge_node_arm64_cpu:latest"
+          tags: "ratio1/base_edge_node_arm64_cpu:latest"
           platforms: linux/arm64

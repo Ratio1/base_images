@@ -4,7 +4,7 @@
 set -e
 
 # Build the image
-IMAGE_NAME_BASE="aidamian/base_edge_node_arm64_tegra"
+IMAGE_NAME_BASE="ratio1/base_edge_node_arm64_tegra"
 IMAGE_NAME=$1
 
 # setup arm64 docker

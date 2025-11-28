@@ -35,7 +35,7 @@ Target: modernize all base images (OS, Python, PyTorch), converge on consistent 
   - References: PyTorch install matrix https://pytorch.org/get-started/locally/; CUDA 12.4 wheels https://download.pytorch.org/whl/cu124; L4T PyTorch container catalog https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch.
 
 ## 6) TensorRT Upgrade Path
-- amd64 GPU: evaluate the latest stable TensorRT (10.x) from NVIDIA PyPI (`--extra-index-url https://pypi.nvidia.com`). Keep a hard pin (e.g., `tensorrt==10.0.x`) matching CUDA 12.x and the chosen torch version; add a build arg to fall back to 8.6.1 if regressions appear.
+- amd64 GPU: evaluate the latest stable TensorRT (10.x) from NVIDIA PyPI (`--extra-index-url https://pypi.nvidia.com`). Keep a hard pin (e.g., `tensorrt==10.4.x`) matching CUDA 12.x and the chosen torch version; add a build arg to fall back to 8.6.1 if regressions appear.
 - Jetson: rely on JetPack-bundled TensorRT (apt packages `libnvinfer*`); do not pip-upgrade. Document the JetPack/TRT version and expose it via an image label.
 - CPU-only images: omit TensorRT to reduce size; keep the install optional behind a build arg.
 - Testing: run `trtexec --version` and a minimal engine build to verify CUDA/cuDNN alignment in CI for amd64; for Jetson mark runtime validation as on-device only.

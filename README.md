@@ -1,12 +1,11 @@
-# Base Images for Edge & FastAPI
-Minimal, versioned Docker bases for GPU/CPU edge workloads and FastAPI services.
+# Base Images for Edge
+Minimal, versioned Docker bases for GPU/CPU edge workloads.
 
 ## Layout at a Glance
 - `base_edge_node/`: Ubuntu 22.04 GPU base with ffmpeg build, Torch/Transformers/TensorRT, ngrok; `Dockerfile_cpu` is CPU-only.
 - `base_edge_node_arm64_cpu/`: Raspberry Pi–focused image with its own ffmpeg build script.
 - `base_edge_node_arm64_tegra/`: Jetson/Tegra GPU base; `retag_and_push_arm64_tegra.sh` normalizes tags after cross-arch builds.
 - `base_edge_node_dind/`: Docker-in-Docker layers (GPU and CPU) built atop edge node images; includes `entrypoint.sh`.
-- `base_fastapi/`, `base_th_llm_fastapi/`: FastAPI-ready Python bases with `build.sh` scripts for auto-tag/push.
 
 ## Quick Start (build & tag)
 ```bash
@@ -21,12 +20,8 @@ docker build -t ratio1/base_edge_node_arm64_cpu:dev base_edge_node_arm64_cpu
 
 # Docker-in-Docker
 docker build -t ratio1/base_edge_node_dind:dev base_edge_node_dind
-
-# FastAPI bases
-(cd base_fastapi && ./build.sh 3.10.13-slim)
-(cd base_th_llm_fastapi && ./build.sh)
 ```
-Tag patterns: `<arch>-py<ver>-th<ver>-tr<ver>` for edge images; FastAPI builds auto-add `py<ver>` tags.
+Tag patterns: `<arch>-py<ver>-th<ver>-tr<ver>` for edge images.
 
 ## Validate Images (spot checks)
 ```bash

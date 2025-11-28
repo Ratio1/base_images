@@ -5,7 +5,6 @@
 - `base_edge_node_arm64_cpu/`: Raspberry Pi image with dedicated `Dockerfile`, `requirements.txt`, and ffmpeg build script.
 - `base_edge_node_arm64_tegra/`: Jetson/Tegra GPU image; `retag_and_push_arm64_tegra.sh` normalizes tags.
 - `base_edge_node_dind/`: Docker-in-Docker layer (GPU and CPU `Dockerfile*`, `entrypoint.sh`) built on edge node images.
-- `base_fastapi/`, `base_th_llm_fastapi/`: FastAPI bases with `Dockerfile`, `requirements.txt`, and `build.sh` for tagging/pushing.
 
 ## Build, Tag & Publish Commands
 - Standard builds:  
@@ -14,7 +13,6 @@
   docker build -f base_edge_node/Dockerfile_cpu -t ratio1/base_edge_node:cpu-dev base_edge_node
   docker build -t ratio1/base_edge_node_dind:dev base_edge_node_dind
   ```
-- FastAPI bases auto-tag/push: `cd base_fastapi && ./build.sh 3.10.13-slim` or `cd base_th_llm_fastapi && ./build.sh`.
 - Arm64 Tegra retagging (after building/pulling): `cd base_edge_node_arm64_tegra && ./retag_and_push_arm64_tegra.sh <image>`; tags follow `<arch>-py<ver>-th<ver>-tr<ver>`.
 - Edge node GPU retagging: `cd base_edge_node && ./retag_and_push.sh <image>`.
 

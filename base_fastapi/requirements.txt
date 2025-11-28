@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-redis
-numpy
-pydantic
-psycopg2-binary
-python-multipart
-kubernetes

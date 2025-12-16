@@ -2,7 +2,7 @@
 Target: modernize all base images while keeping per-arch repos intact, move to Ubuntu 24.04 + Python 3.13 where feasible, embed DinD into every image (reusing the existing entrypoint and `EE_DD` toggle), and align installs/tests with `uv pip`.
 
 ## 1) Scope and repository reality
-- Actively target three images: `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, and `base_edge_node_arm64_cpu` (Pi/arm64v8). Keep directories/tags stable; tags should follow the existing scheme (pyX.Y.Z-thA.B.C-trD.E.F - encoding python, torch and transformers versions) without arch in the tag, since the repo already encodes arch.
+- Actively target three images: `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, and `base_edge_node_arm64_cpu` (Pi/arm64v8). Keep directories/tags stable; tags should follow the existing scheme (pyX.Y.Z-thA.B.C-cuD.E.F-trG.H.I - encoding python, torch, cuda and transformers versions) without arch in the tag, since the repo already encodes arch.
 - All active images should start from `ubuntu:24.04` (or `arm64v8/ubuntu:24.04`) with Python 3.13 layered on top.
 - DinD must be integrated into every active image (not a separate image), but the current `base_edge_node_dind/entrypoint.sh` and the `EE_DD` environment flag must be preserved verbatim as the opt-in switch for privileged docker-in-docker mode.
 
@@ -12,10 +12,10 @@ Target: modernize all base images while keeping per-arch repos intact, move to U
 - Replace all `pip install`/venv usage with `uv pip install --system --no-cache --no-compile ...` (including `--extra-index-url` for torch). No virtualenvs are needed; drop the venv created in `Dockerfile_cpu`.
 
 ## 3) Core package versions and compatibility guardrails
-- PyTorch: assume cp313 wheels (CPU and cu124) are available at current versions (e.g., torch 2.9.x + cu124, matching torchvision/torchaudio). Use 3.13 as default; keep a build arg to fall back to 3.12 if a wheel is missing for a specific arch/variant.
+- PyTorch: assume cp313 wheels (CPU and cu128 or newer) are available at current versions (e.g., torch 2.9.x + cu128, matching torchvision/torchaudio). Use 3.13 as default; keep a build arg to fall back to 3.12 if a wheel is missing for a specific arch/variant.
 - Transformers/tokenizers: assume latest releases (e.g., transformers 4.57.x+, tokenizers 0.22.x) ship cp313 wheels. Default to these on Python 3.13; only pin down or fall back to 3.12 if validation shows gaps.
 - Bitsandbytes/flash-attn: both are CUDA-only and currently limited to specific Python/CUDA combos (generally Py<=3.11). Keep them behind build args per arch; disable when Python 3.13 is enabled or when the target SM/CUDA pair lacks wheels.
-- TensorRT: the existing pin (`tensorrt==8.6.1`) only supports older Python versions. TRT 10.x PyPI targets Py3.11 + CUDA 12.x; no Py3.13 wheels yet. For amd64 GPU, gate TRT behind a build arg and default to off until a matching wheel is confirmed. CPU images should omit TRT.
+- TensorRT: the existing pin (`tensorrt==8.6.1`) only supports older Python versions. TRT 10.x PyPI targets Py3.11 + CUDA 12.x/12.8; no Py3.13 wheels yet. For amd64 GPU, gate TRT behind a build arg and default to off until a matching wheel is confirmed. CPU images should omit TRT.
 - ffmpeg: stop building from git head; pin to a released version (6.1.1 or 7.0.x) via a shared multi-stage builder. Trim codecs for Pi to reduce heat/size. Ensure dev deps are purged to keep layers small and consistent across arches.
 - Node/ngrok: keep Node 20 LTS (or 22 if 24.04 apt is preferred) and retain the arch-specific ngrok tarballs already used.
 
@@ -25,7 +25,7 @@ Target: modernize all base images while keeping per-arch repos intact, move to U
 - After all images embed DinD, keep a compatibility tag for users expecting `ratio1/base_edge_node_dind:*` but avoid maintaining a duplicate Dockerfile.
 
 ## 5) Architecture-specific guidance
-- amd64 GPU: base `ubuntu:24.04`, CUDA 12.4 wheels, torch 2.9.x + cu124 (cp313 assumed), transformers 4.57.x+ + tokenizers 0.22.x (cp313 assumed), ffmpeg 6.1.1/7.0.x builder. Default to Python 3.13; keep a fallback to 3.12 only if validation shows missing wheels.
+- amd64 GPU: base `ubuntu:24.04`, CUDA 12.8 wheels, torch 2.9.x + cu128 (cp313 assumed), transformers 4.57.x+ + tokenizers 0.22.x (cp313 assumed), ffmpeg 6.1.1/7.0.x builder. Default to Python 3.13; keep a fallback to 3.12 only if validation shows missing wheels.
 - amd64 CPU: base `ubuntu:24.04`, torch 2.9.x CPU wheels (cp313 assumed) with current transformers/tokenizers on 3.13; fall back to 3.12 only on validation failures. Remove the venv, keep installs system-wide via `uv pip --system`.
 - arm64 CPU (Pi): base `arm64v8/ubuntu:24.04`, torch 2.9.x CPU wheels (cp313 assumed for aarch64), slim ffmpeg (drop heavy codecs), and the same transformers/tokenizers pins on 3.13; fall back to 3.12 only if aarch64 cp313 wheels are missing.
 

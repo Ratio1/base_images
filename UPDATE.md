@@ -15,7 +15,7 @@ Target: modernize all base images while keeping per-arch repos intact, move to U
 - PyTorch: assume cp313 wheels (CPU and cu128 or newer) are available at current versions (e.g., torch 2.9.x + cu128, matching torchvision/torchaudio). Use 3.13 as default; keep a build arg to fall back to 3.12 if a wheel is missing for a specific arch/variant.
 - Transformers/tokenizers: assume latest releases (e.g., transformers 4.57.x+, tokenizers 0.22.x) ship cp313 wheels. Default to these on Python 3.13; only pin down or fall back to 3.12 if validation shows gaps.
 - Bitsandbytes/flash-attn: both are CUDA-only and currently limited to specific Python/CUDA combos (generally Py<=3.11). Keep them behind build args per arch; disable when Python 3.13 is enabled or when the target SM/CUDA pair lacks wheels.
-- TensorRT: the existing pin (`tensorrt==8.6.1`) only supports older Python versions. TRT 10.x PyPI targets Py3.11 + CUDA 12.x/12.8; no Py3.13 wheels yet. For amd64 GPU, gate TRT behind a build arg and default to off until a matching wheel is confirmed. CPU images should omit TRT.
+- TensorRT: use TRT 10.x PyPI already compatible with Py3.13. CPU images should omit TRT.
 - ffmpeg: stop building from git head; pin to a released version (6.1.1 or 7.0.x) via a shared multi-stage builder. Trim codecs for Pi to reduce heat/size. Ensure dev deps are purged to keep layers small and consistent across arches.
 - Node/ngrok: keep Node 20 LTS (or 22 if 24.04 apt is preferred) and retain the arch-specific ngrok tarballs already used.
 

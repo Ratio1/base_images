@@ -1,98 +1,53 @@
-# Upgrade and Refactor Plan
-Target: modernize all base images (OS, Python, PyTorch), converge on consistent DinD support, and streamline CI/CD for multi-arch delivery.
+# Upgrade and Refactor Plan (reviewed)
+Target: modernize all base images while keeping per-arch repos intact, move to Ubuntu 24.04 + Python 3.13 where feasible, embed DinD into every image (reusing the existing entrypoint and `EE_DD` toggle), and align installs/tests with `uv pip`.
 
-## 1) Objectives & Scope
-- Replace `base_edge_node` with explicit variants: `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, `base_edge_node_arm64_cpu` (Pi-optimized), `base_edge_node_arm64_tegra` (Jetson-optimized). Drop `base_edge_node_dind` after DinD is built into each image as an opt-in entrypoint.
-- Move all eligible images to Ubuntu 24.04 LTS and Python 3.13; keep exceptions documented (Jetson base images tied to NVIDIA L4T/JetPack).
-- Upgrade PyTorch to the latest stable release per arch (CPU, CUDA 12.x for amd64, JetPack-matched for Tegra).
-- Harden Docker-in-Docker (TLS by default, rootless where possible, fuse-overlayfs, uidmap) and align with the latest Docker CE release.
-- Optimize arm64 Pi and Jetson builds for size, thermal headroom, and hardware-accelerated codecs.
-- Refactor GitHub Actions to a unified, cache-aware matrix pipeline with consistent tagging and provenance metadata.
+## 1) Scope and repository reality
+- Actively target three images: `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, and `base_edge_node_arm64_cpu` (Pi/arm64v8). Keep directories/tags stable; tags should follow the existing scheme (pyX.Y.Z-thA.B.C-trD.E.F) without arch in the tag, since the repo already encodes arch.
+- All active images should start from `ubuntu:24.04` (or `arm64v8/ubuntu:24.04`) with Python 3.13 layered on top.
+- DinD must be integrated into every active image (not a separate image), but the current `base_edge_node_dind/entrypoint.sh` and the `EE_DD` environment flag must be preserved verbatim as the opt-in switch for privileged docker-in-docker mode.
 
-## 2) Current Baseline Snapshot
-- amd64: `base_edge_node` (GPU/CPU Dockerfiles), `base_edge_node_dind` (DinD wrapper).
-- arm64: `base_edge_node_arm64_cpu` (generic Pi), `base_edge_node_arm64_tegra` (FROM `dustynv/l4t-pytorch:r36.2.0`).
-- CI: per-directory workflows using Buildx cloud drivers, minimal caching, manual retag scripts.
+## 2) Python 3.13 feasibility and installer changes
+- Ubuntu 24.04 ships Python 3.12; Python 3.13 is not in apt yet. Plan to compile 3.13 or use a builder stage with `uv python install 3.13` and copy it in. Expect longer build times and extra build deps; keep a build arg to temporarily fall back to 3.12 if wheels are missing.
+- Assume current releases (torch/torchvision/torchaudio, transformers, tokenizers, tensorrt, flash-attn, bitsandbytes) all publish cp313 wheels and are compatible. Treat 3.13 as the default target; keep a guarded fallback to 3.12 only if build-time validation surfaces a gap.
+- Replace all `pip install`/venv usage with `uv pip install --system --no-cache --no-compile ...` (including `--extra-index-url` for torch). No virtualenvs are needed; drop the venv created in `Dockerfile_cpu`.
 
-## 3) Image Matrix & Naming
-- New canonical names:  
-  - `base_edge_node_amd64_gpu` (CUDA 12.x)  
-  - `base_edge_node_amd64_cpu`  
-  - `base_edge_node_arm64_cpu` (Pi-optimized)  
-  - `base_edge_node_arm64_tegra` (JetPack-aligned)  
-  - Remove `base_edge_node` (legacy alias) and `base_edge_node_dind`.
-- Tag pattern: `<arch>-py<ver>-th<ver>[-tr<ver>][-dind]` plus `latest`. Use Docker metadata action to add `sha`, `date`, and `v*` semver tags when present.
+## 3) Core package versions and compatibility guardrails
+- PyTorch: assume cp313 wheels (CPU and cu124) are available at current versions (e.g., torch 2.9.x + cu124, matching torchvision/torchaudio). Use 3.13 as default; keep a build arg to fall back to 3.12 if a wheel is missing for a specific arch/variant.
+- Transformers/tokenizers: assume latest releases (e.g., transformers 4.57.x+, tokenizers 0.22.x) ship cp313 wheels. Default to these on Python 3.13; only pin down or fall back to 3.12 if validation shows gaps.
+- Bitsandbytes/flash-attn: both are CUDA-only and currently limited to specific Python/CUDA combos (generally Py<=3.11). Keep them behind build args per arch; disable when Python 3.13 is enabled or when the target SM/CUDA pair lacks wheels.
+- TensorRT: the existing pin (`tensorrt==8.6.1`) only supports older Python versions. TRT 10.x PyPI targets Py3.11 + CUDA 12.x; no Py3.13 wheels yet. For amd64 GPU, gate TRT behind a build arg and default to off until a matching wheel is confirmed. CPU images should omit TRT.
+- ffmpeg: stop building from git head; pin to a released version (6.1.1 or 7.0.x) via a shared multi-stage builder. Trim codecs for Pi to reduce heat/size. Ensure dev deps are purged to keep layers small and consistent across arches.
+- Node/ngrok: keep Node 20 LTS (or 22 if 24.04 apt is preferred) and retain the arch-specific ngrok tarballs already used.
 
-## 4) OS & Python Upgrade Strategy
-- amd64 GPU/CPU and Pi: move to `ubuntu:24.04` (or `arm64v8/ubuntu:24.04`). Validate glibc compatibility with bundled libs (ffmpeg, flash-attn).
-- Jetson: stay on the official L4T base matching the target JetPack (r36.2 == Ubuntu 22.04). 24.04 is not yet supported by NVIDIA; document this exception.
-- Python 3.13: use `ppa:deadsnakes/ppa` or `python:3.13-slim` stage for amd64/arm64 CPU; confirm PyTorch wheel availability. If PyTorch for 3.13 is gated, set a feature flag to fall back to 3.12 while keeping Dockerfile ready for 3.13 once released.
+## 4) DinD integration requirements
+- Install Docker CE (27/28) + `fuse-overlayfs` + `uidmap` inside every image, set `DOCKER_TLS_CERTDIR=/certs`, and keep `EE_DD` as the switch to launch dockerd. The preserved `entrypoint.sh` must remain the dockerd launcher; the normal app entrypoint should stay available when `EE_DD=false`.
+- Verify overlayfs availability per arch; document the requirement and allow a non-DinD path when missing.
+- After all images embed DinD, keep a compatibility tag for users expecting `ratio1/base_edge_node_dind:*` but avoid maintaining a duplicate Dockerfile.
 
-## 5) PyTorch Upgrade Path
-- Target PyTorch ≥ 2.4.x (or the latest stable) for amd64 CPU/GPU with CUDA 12.4 wheels from `https://download.pytorch.org/whl/cu124`.
-- Jetson: match NVIDIA’s L4T PyTorch release for r36.2 (JetPack 6). If a newer L4T-PyTorch tag exists, bump to it; otherwise keep r36.2 torch and document pinning.
-- Add a small smoke test script per image (`python - <<'PY'` printing platform, torch, transformers, cuda availability) for CI validation.
-  - References: PyTorch install matrix https://pytorch.org/get-started/locally/; CUDA 12.4 wheels https://download.pytorch.org/whl/cu124; L4T PyTorch container catalog https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch.
+## 5) Architecture-specific guidance
+- amd64 GPU: base `ubuntu:24.04`, CUDA 12.4 wheels, torch 2.9.x + cu124 (cp313 assumed), transformers 4.57.x+ + tokenizers 0.22.x (cp313 assumed), ffmpeg 6.1.1/7.0.x builder. Default to Python 3.13; keep a fallback to 3.12 only if validation shows missing wheels.
+- amd64 CPU: base `ubuntu:24.04`, torch 2.9.x CPU wheels (cp313 assumed) with current transformers/tokenizers on 3.13; fall back to 3.12 only on validation failures. Remove the venv, keep installs system-wide via `uv pip --system`.
+- arm64 CPU (Pi): base `arm64v8/ubuntu:24.04`, torch 2.9.x CPU wheels (cp313 assumed for aarch64), slim ffmpeg (drop heavy codecs), and the same transformers/tokenizers pins on 3.13; fall back to 3.12 only if aarch64 cp313 wheels are missing.
 
-## 5a) Runtime Test Scripts (current → future split)
-- Current scripts:  
-  - `base_edge_node/test_image.sh`: builds GPU by default, CPU via `--cpu`; runs version checks (python/pip/ffmpeg/node/ngrok, torch/transformers/onnx/openvino/tensorrt) and nested Docker with `pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime` (GPU) or `ratio1/pytorch:cpu-latest` (CPU). Requires `/var/run/docker.sock`; uses `--gpus all` when GPU.  
-  - `base_edge_node_arm64_cpu/test_image.sh`: builds ARM64 CPU, checks torch/transformers/onnx, ffmpeg, and runs nested torch `ratio1/pytorch:cpu-latest` with `--platform linux/arm64`.  
-  - `base_edge_node_arm64_tegra/test_image.sh`: builds Tegra image, requires `--runtime nvidia`; checks GPU torch stack and runs nested `pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime` (works only on NVIDIA runtime). Nested run should be marked “on-device only”.  
-  - `base_edge_node_dind/test_image.sh`: builds GPU/CPU DinD layers, boots inner dockerd with `--privileged`, validates docker info, torch stack, and runs nested torch (`ratio1/pytorch:cpu-latest` by default; `--nested-use-gpu` swaps to the GPU torch image).
-- Best practices to carry into refactor (when splitting to `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, `base_edge_node_arm64_cpu`, `base_edge_node_arm64_tegra`, and the DinD-enabled variants):  
-  - Keep nested container checks gated and optional (`SKIP_NESTED`), require `/var/run/docker.sock`, and set `DOCKER_HOST=unix:///var/run/docker.sock` with a bind of the `docker` binary.  
-  - Use resource-aware flags (`--shm-size`, `--gpus all` or `--runtime nvidia`) and short smoke tests (torch/transformers versions, CUDA availability, ffmpeg codecs top lines).  
-  - For Tegra, declare that runtime validation must occur on real hardware; CI/QEMU should only syntax-check.  
-  - Align nested images with the chosen torch/CUDA matrix (current GPU: `pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime`; CPU: `ratio1/pytorch:cpu-latest` from the local builder).  
-  - After the directory split, rename/move scripts accordingly and wire them into CI matrix jobs as post-build smoke tests.
+## 6) Tests and platform detection updates
+- Update `test_image.sh` scripts to auto-detect the host arch (`uname -m` and `docker info --format '{{.Architecture}}'`) and run only the matching tests. Skip GPU checks unless `nvidia-smi`/`--gpus all` is available; skip arm64 nested runs on amd64 hosts unless QEMU is configured.
+- Keep nested Docker smoke tests behind `SKIP_NESTED`; require `/var/run/docker.sock` or start the image with `EE_DD=true` to exercise the embedded dockerd.
+- Assert versions in tests (torch/transformers/ffmpeg) instead of only printing them, and include a quick `uv pip check` to validate the installer switch.
 
-## 6) TensorRT Upgrade Path
-- amd64 GPU: evaluate the latest stable TensorRT (10.x) from NVIDIA PyPI (`--extra-index-url https://pypi.nvidia.com`). Keep a hard pin (e.g., `tensorrt==10.4.x`) matching CUDA 12.x and the chosen torch version; add a build arg to fall back to 8.6.1 if regressions appear.
-- Jetson: rely on JetPack-bundled TensorRT (apt packages `libnvinfer*`); do not pip-upgrade. Document the JetPack/TRT version and expose it via an image label.
-- CPU-only images: omit TensorRT to reduce size; keep the install optional behind a build arg.
-- Testing: run `trtexec --version` and a minimal engine build to verify CUDA/cuDNN alignment in CI for amd64; for Jetson mark runtime validation as on-device only.
-  - Reference: TensorRT release notes https://docs.nvidia.com/deeplearning/tensorrt/release-notes/.
+## 7) CI/CD refactor
+- Use a single buildx matrix over the existing directories (no renames) with arch-aware tags. Include `UV_CACHE_DIR` to speed installs.
+- Gate runtime GPU tests to hardware runners; CI on amd64 should run only amd64 CPU/GPU smoke tests. Cross-built arm64 jobs should stop after import/ffmpeg smoke unless a device runner is available.
+- Replace manual retag scripts with metadata action tags but keep the legacy tag names for compatibility.
 
-## 7) DinD Integration (all images)
-- Embed Docker CE (rootless preferred) inside each edge image with opt-in via `EE_DD=true`. Provide two entrypoints: normal app entrypoint and `dockerd-entrypoint.sh`.
-- Upgrade Docker CE to the latest LTS (e.g., 27.x+), use `fuse-overlayfs` and `uidmap`, set `DOCKER_TLS_CERTDIR` with auto-generated certs, and allow `EE_DD=false` to skip daemon start.
-- Harden: drop capabilities where possible, purge build tools after install, and enable log rotation defaults.
-- Remove the standalone `base_edge_node_dind` directory after migration; keep a compatibility tag that points to the new amd64 DinD-enabled GPU image.
-  - References: Docker CE release notes https://docs.docker.com/engine/release-notes/; Rootless mode https://docs.docker.com/engine/security/rootless/; DinD security guidance https://docs.docker.com/engine/security/protect-access/#docker-in-docker.
+## 8) Execution sequence
+1. Add shared snippets for `uv` installation, Python 3.13 builder/copy, and the DinD entrypoint reuse. Update AGENTS.md accordingly.
+2. Convert amd64 GPU/CPU Dockerfiles to Ubuntu 24.04 + `uv pip --system`, pin torch/transformers/ffmpeg, and embed DinD with the preserved entrypoint.
+3. Port the arm64 CPU image to 24.04 with the same installer/version scheme and a trimmed ffmpeg stage.
+4. Rewrite test scripts with platform detection and version assertions; ensure they honor `SKIP_NESTED` and `EE_DD`.
+5. Refactor CI to the matrix layout, wiring the new tests and tags, and run staged builds per arch.
 
-## 8) arm64 Pi Optimization
-- Base: `arm64v8/ubuntu:24.04` (or `debian:bookworm-slim` if smaller) with `--platform=linux/arm64/v8` buildx.
-- Python: from deadsnakes 3.13 or compiled once in a builder stage; install minimal build deps then purge. Prefer `pip --no-cache-dir` and `--extra-index-url https://download.pytorch.org/whl/cpu` if using torch CPU wheels.
-- ffmpeg: reuse a common multi-stage builder; copy only binaries and libs. Consider disabling heavy codecs on Pi to save space.
-- Enable `arm_64bit=1` expectation, ensure `pi` friendly sysctl not assumed; keep `nano/vim` optional.
-  - References: Ubuntu arm64 images https://hub.docker.com/_/ubuntu; Raspberry Pi Docker build guidance https://docs.docker.com/build/arm/.
-
-## 9) arm64 Tegra Optimization
-- Stay on `dustynv/l4t-pytorch:<matching JP>`; confirm JetPack 6.0 GA tag and CUDA/cuDNN versions. Only rebuild ffmpeg if the base lacks needed codecs; otherwise rely on NVIDIA-provided multimedia stack.
-- Avoid upgrading to Ubuntu 24.04 until NVIDIA ships it. Note that Python 3.13 may not be supported; keep Python version tied to the L4T image (likely 3.10/3.11). If 3.13 is required, document it as blocked and add a conditional build arg.
-- Use `--runtime nvidia` expectations; test on-device or via QEMU for syntax only, with runtime tests marked “manual on Jetson”.
-  - References: JetPack downloads/compatibility https://developer.nvidia.com/embedded/jetpack; L4T PyTorch container https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-pytorch.
-
-## 10) CI/CD Refactor
-- Consolidate workflows into a matrix: axes for `{arch: amd64, arm64, tegra}` and `{variant: gpu, cpu, dind}` where applicable; reuse a single workflow with conditional include/exclude rules.
-- Use `docker/setup-buildx-action@v3` with `driver: docker-container` and `cache-from/cache-to: type=gha,mode=max`.
-- Add QEMU setup for cross builds, and leverage `docker/metadata-action` for tags/labels and SBOM/attestations (`docker/build-push-action` supports `provenance`).
-- Integrate the new smoke tests post-build (run containers, print torch/transformers/cuda info). For Jetson, gate runtime tests behind a manual “device” job.
-- Replace manual retag scripts with buildx-driven multi-tag outputs; keep legacy tags via `--tag` list in a single build step.
-  - References: Buildx docs https://docs.docker.com/build/buildx/; QEMU setup https://github.com/docker/setup-qemu-action; metadata/provenance https://github.com/docker/metadata-action.
-
-## 11) Execution Sequence (phased)
-1. Define common base snippets (Python install, ffmpeg builder, DinD entrypoint) and update AGENTS.md with the new matrix and tag scheme.
-2. Implement amd64 CPU/GPU Dockerfiles on Ubuntu 24.04 + Python 3.13; upgrade torch/transformers; embed DinD entrypoint; deprecate `base_edge_node` alias.
-3. Port Pi image to 24.04 (or Debian slim), add multi-stage ffmpeg, Python 3.13, torch CPU wheels, and size/boot-time trims.
-4. Update Tegra image to latest L4T-PyTorch tag; reconcile ffmpeg needs; document Python/OS constraints.
-5. Replace `base_edge_node_dind` with new DinD-enabled images; maintain temporary compatibility tags.
-6. Refactor GitHub Actions into a matrix workflow with caching, metadata, SBOM, and smoke tests.
-7. Run end-to-end builds (amd64, arm64 via QEMU; Jetson syntax-only) and push to staging tags; verify runtime on actual devices for Pi/Jetson before promoting `latest`.
-
-## 12) Risk & Mitigation Notes
-- Python 3.13 + PyTorch: watch official wheel availability; keep a toggle to fall back to 3.12 without blocking the refactor.
-- Jetson OS jump: blocked until NVIDIA publishes 24.04-based L4T; document the exception and avoid forced upgrade.
-- DinD in all images: ensure it remains optional to avoid bloating non-Docker use cases; keep entrypoint selectable.
-- Cross-build drift: rely on buildx + QEMU; validate with smoke tests and device runs before tagging `latest`.
+## 9) Risks and mitigations
+- Python 3.13: proceeding under the assumption that current releases provide cp313 wheels across torch/transformers/tokenizers/CUDA and related deps. Keep a guarded fallback to 3.12 and add CI checks to fail fast if any arch/variant lacks cp313 wheels.
+- DinD integration increases size and privilege needs; ensure overlayfs/iptables modules exist per arch and keep `EE_DD=false` as a safe default.
+- ffmpeg source builds on 24.04 may be slower; use pinned releases and multi-stage builds to reduce timeouts and layer bloat.
+- Cross-arch tests must not run the wrong nested images; enforce host-arch detection to avoid false failures.

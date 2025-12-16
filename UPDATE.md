@@ -2,7 +2,7 @@
 Target: modernize all base images while keeping per-arch repos intact, move to Ubuntu 24.04 + Python 3.13 where feasible, embed DinD into every image (reusing the existing entrypoint and `EE_DD` toggle), and align installs/tests with `uv pip`.
 
 ## 1) Scope and repository reality
-- Actively target three images: `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, and `base_edge_node_arm64_cpu` (Pi/arm64v8). Keep directories/tags stable; tags should follow the existing scheme (pyX.Y.Z-thA.B.C-trD.E.F) without arch in the tag, since the repo already encodes arch.
+- Actively target three images: `base_edge_node_amd64_gpu`, `base_edge_node_amd64_cpu`, and `base_edge_node_arm64_cpu` (Pi/arm64v8). Keep directories/tags stable; tags should follow the existing scheme (pyX.Y.Z-thA.B.C-trD.E.F - encoding python, torch and transformers versions) without arch in the tag, since the repo already encodes arch.
 - All active images should start from `ubuntu:24.04` (or `arm64v8/ubuntu:24.04`) with Python 3.13 layered on top.
 - DinD must be integrated into every active image (not a separate image), but the current `base_edge_node_dind/entrypoint.sh` and the `EE_DD` environment flag must be preserved verbatim as the opt-in switch for privileged docker-in-docker mode.
 

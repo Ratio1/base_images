@@ -44,6 +44,21 @@ RUN set -eux; \
     echo 'dockremap:165536:65536' >> /etc/subuid; \
     echo 'dockremap:165536:65536' >> /etc/subgid
 
+RUN /bin/sh -c set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends gnupg ca-certificates curl; \
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey  \
+        | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg; \
+    . /etc/os-release;\
+    curl -fsSL https://nvidia.github.io/libnvidia-container/${ID}${VERSION_ID}/libnvidia-container.list \
+        | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#'  \
+        > /etc/apt/sources.list.d/nvidia-container-toolkit.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends nvidia-container-toolkit; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN /bin/sh -c nvidia-ctk runtime configure --runtime=docker
+    
 # Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/dockerd-entrypoint.sh
 RUN chmod +x /usr/local/bin/dockerd-entrypoint.sh

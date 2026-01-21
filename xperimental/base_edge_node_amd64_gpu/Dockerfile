@@ -1,93 +1,224 @@
+FROM ubuntu:24.04 AS python-builder
+
+ARG PYTHON_VERSION=3.13.0
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libffi-dev \
+    liblzma-dev \
+    libgdbm-dev \
+    libncursesw5-dev \
+    uuid-dev \
+    tk-dev \
+    xz-utils \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp/python-build
+
+RUN set -eux; \
+  curl -fsSLO "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz"; \
+  tar -xzf "Python-${PYTHON_VERSION}.tgz"; \
+  cd "Python-${PYTHON_VERSION}"; \
+  ./configure --prefix=/opt/python --enable-optimizations --with-lto --enable-shared; \
+  make -j"$(nproc)"; \
+  make install; \
+  cd /tmp/python-build; \
+  rm -rf "Python-${PYTHON_VERSION}" "Python-${PYTHON_VERSION}.tgz"; \
+  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -m ensurepip; \
+  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+FROM ubuntu:24.04 AS ffmpeg-builder
+
+ARG FFMPEG_VERSION=6.1.1
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    git \
+    curl \
+    pkg-config \
+    yasm \
+    nasm \
+    cmake \
+    ninja-build \
+    meson \
+    libva-dev \
+    vainfo \
+    libgnutls28-dev \
+    libaom-dev \
+    libmp3lame-dev \
+    libopus-dev \
+    libvpx-dev \
+    libx264-dev \
+    libx265-dev \
+    libxml2-dev \
+    libass-dev \
+    libfreetype6-dev \
+    libfontconfig1-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
+
+RUN chmod +x /tmp/build-ffmpeg.sh && \
+  FFMPEG_VERSION="${FFMPEG_VERSION}" /tmp/build-ffmpeg.sh
+
 FROM ubuntu:24.04
 
-ARG PYTHON_VERSION=3.13
-ARG PYTHON_FALLBACK=3.12
-ARG TORCH_VERSION=2.6.0
-ARG TORCHVISION_VERSION=0.21.0
-ARG TORCHAUDIO_VERSION=2.6.0
-ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cu124
-ARG DOCKER_VERSION=7.1.0
+ARG PYTHON_VERSION=3.13.0
+ARG TORCH_VERSION=2.9.0
+ARG TORCHVISION_VERSION=0.24.0
+ARG TORCHAUDIO_VERSION=2.9.0
+ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cu128
+ARG TENSORRT_VERSION=10.14.1
+ARG ENABLE_BITSANDBYTES=false
+ARG ENABLE_FLASH_ATTN=false
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
     DOCKER_TLS_CERTDIR=/certs \
-    EE_DD=false
+    EE_DD=false \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-WORKDIR /tmp
-COPY scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
+COPY --from=python-builder /opt/python /opt/python
+COPY --from=ffmpeg-builder /usr/local /usr/local
 COPY base_edge_node_amd64_gpu/requirements.txt /tmp/requirements.txt
-COPY scripts/dockerd-entrypoint.sh /usr/local/bin/dockerd-entrypoint.sh
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN set -eux; \
-  chmod +x /usr/local/bin/dockerd-entrypoint.sh; \
+  chmod +x /usr/local/bin/entrypoint.sh; \
   apt-get update; \
-  apt-get install -y --no-install-recommends software-properties-common gpg-agent ca-certificates curl wget tzdata nano openssl; \
+  apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    tzdata \
+    nano \
+    openssl \
+    gpg \
+    mosquitto \
+    mosquitto-clients \
+    git \
+    iptables \
+    iproute2 \
+    kmod \
+    xz-utils \
+    pigz \
+    unzip \
+    lsb-release \
+    fuse-overlayfs \
+    uidmap \
+    libaom3 \
+    libass9 \
+    libfontconfig1 \
+    libfreetype6 \
+    libgnutls30t64 \
+    libmp3lame0 \
+    libopus0 \
+    libva2 \
+    libva-drm2 \
+    libvpx9 \
+    libx264-164 \
+    libx265-199 \
+    libxml2; \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime; echo $TZ > /etc/timezone; \
-  add-apt-repository ppa:deadsnakes/ppa; \
-  apt-get update; \
-  if ! apt-get install -y --no-install-recommends python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python${PYTHON_VERSION}-venv python3-pip; then \
-    apt-get install -y --no-install-recommends python${PYTHON_FALLBACK} python${PYTHON_FALLBACK}-dev python${PYTHON_FALLBACK}-venv python3-pip; \
-  fi; \
-  PY_BIN="python${PYTHON_VERSION}"; if [ ! -x "/usr/bin/${PY_BIN}" ]; then PY_BIN="python${PYTHON_FALLBACK}"; fi; \
-  ${PY_BIN} -m venv /opt/venv; \
-  . /opt/venv/bin/activate; pip install --upgrade pip setuptools; \
-  apt-get install -y --no-install-recommends \
-    build-essential git nasm cmake pkg-config ninja-build \
-    libva-dev vainfo libgnutls28-dev libaom-dev libmp3lame-dev libopus-dev \
-    libvpx-dev libx264-dev libx265-dev libxml2-dev libass-dev; \
-  pip install --no-cache-dir meson; \
-  bash /tmp/build-ffmpeg.sh; \
-  pip uninstall -y meson; \
-  apt-get purge -y build-essential git nasm cmake pkg-config ninja-build software-properties-common; \
-  apt-get autoremove -y; \
-  rm -rf /var/lib/apt/lists/* /root/.cache
-
-RUN set -eux; \
-  apt-get update; \
-  apt-get install -y --no-install-recommends \
-    mosquitto mosquitto-clients git iptables iproute2 xz-utils pigz unzip lsb-release \
-    fuse-overlayfs uidmap curl; \
-  curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh; \
-  bash nodesource_setup.sh; \
+  curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh; \
+  bash /tmp/nodesource_setup.sh; \
   apt-get install -y --no-install-recommends nodejs; \
-  rm -f nodesource_setup.sh; \
+  rm -f /tmp/nodesource_setup.sh; \
   curl -fsSLo /tmp/ngrok.tgz https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz; \
-  tar xf /tmp/ngrok.tgz -C /usr/local/bin; rm /tmp/ngrok.tgz; \
-  rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-  apt-get update; \
+  tar xf /tmp/ngrok.tgz -C /usr/local/bin; \
+  rm -f /tmp/ngrok.tgz; \
   mkdir -p /etc/apt/keyrings; \
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg; \
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list; \
   apt-get update; \
   apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io; \
-  rm -rf /var/lib/apt/lists/*
+  curl -fsSLo /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb; \
+  dpkg -i /tmp/cuda-keyring.deb; \
+  rm -f /tmp/cuda-keyring.deb; \
+  apt-get update; \
+  if ! apt-get install -y --no-install-recommends \
+    libnvinfer10 \
+    libnvinfer-plugin10 \
+    libnvonnxparsers10 \
+    libnvparsers10 \
+    python3-libnvinfer; then \
+    apt-get install -y --no-install-recommends tensorrt python3-libnvinfer; \
+  fi; \
+  TRT_INSTALLED_VERSION="$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)"; \
+  if [ -z "${TRT_INSTALLED_VERSION}" ]; then \
+    echo "TensorRT package libnvinfer10 not installed"; \
+    exit 1; \
+  fi; \
+  echo "TensorRT installed: ${TRT_INSTALLED_VERSION}"; \
+  rm -rf /usr/local/include /usr/local/lib/pkgconfig /usr/local/share/doc /usr/local/share/man; \
+  rm -rf /var/lib/apt/lists/*; \
+  ldconfig
 
-ENV PATH="/opt/venv/bin:$PATH" \
-    LD_LIBRARY_PATH="/usr/local/lib" \
+ENV PATH="/opt/python/bin:/usr/local/bin:$PATH" \
+    LD_LIBRARY_PATH="/opt/python/lib:/usr/local/lib" \
+    UV_HTTP_TIMEOUT=300 \
     AI_ENV="base_edge_node_amd64_gpu" \
     AI_ENV_VER="0.2.0"
 
-WORKDIR /ai_edge_node
-
 RUN set -eux; \
-  . /opt/venv/bin/activate; \
-  pip install --no-cache-dir \
+  curl -Ls https://astral.sh/uv/install.sh | sh; \
+  if [ -f /root/.local/bin/uv ]; then mv /root/.local/bin/uv /usr/local/bin/uv; fi; \
+  if [ -f /root/.local/bin/uvx ]; then mv /root/.local/bin/uvx /usr/local/bin/uvx; fi; \
+  rm -rf /root/.local; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends build-essential cmake; \
+  uv pip install --system --no-cache --no-compile \
     torch==${TORCH_VERSION} \
     torchvision==${TORCHVISION_VERSION} \
     torchaudio==${TORCHAUDIO_VERSION} \
     --extra-index-url ${TORCH_CHANNEL}; \
-  apt-get update; \
-  apt-get install -y --no-install-recommends build-essential cmake; \
-  pip install --no-cache-dir -r /tmp/requirements.txt; \
-  pip install --no-cache-dir docker==${DOCKER_VERSION}; \
+  uv pip install --system --no-cache --no-compile -r /tmp/requirements.txt; \
+  if [ "${ENABLE_BITSANDBYTES}" = "true" ]; then \
+    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
+      echo "Skipping bitsandbytes on Python ${PYTHON_VERSION}"; \
+    else \
+      uv pip install --system --no-cache --no-compile bitsandbytes; \
+    fi; \
+  fi; \
+  if [ "${ENABLE_FLASH_ATTN}" = "true" ]; then \
+    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
+      echo "Skipping flash-attn on Python ${PYTHON_VERSION}"; \
+    else \
+      uv pip install --system --no-cache --no-compile flash-attn; \
+    fi; \
+  fi; \
+  PYTHON_MAJOR_MINOR="${PYTHON_VERSION%.*}"; \
+  rm -rf "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/test" \
+    "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/idlelib" \
+    "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/turtledemo" \
+    "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/ensurepip/_bundled"; \
+  find "/opt/python/lib/python${PYTHON_MAJOR_MINOR}" -type d -name __pycache__ -prune -exec rm -rf '{}' +; \
+  find "/opt/python/lib/python${PYTHON_MAJOR_MINOR}" -type f -name '*.pyc' -delete; \
+  find /usr/local/lib -type f \( -name '*.a' -o -name '*.la' \) -delete; \
+  strip --strip-unneeded /opt/python/bin/python3.13 /usr/local/bin/ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ngrok || true; \
+  find /opt/python/lib -type f -name '*.so' -exec strip --strip-unneeded '{}' + || true; \
+  find /usr/local/lib -type f -name '*.so*' -exec strip --strip-unneeded '{}' + || true; \
   apt-get purge -y build-essential cmake; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \
   rm -rf /root/.cache
 
-ENTRYPOINT ["/usr/local/bin/dockerd-entrypoint.sh"]
+RUN mkdir -p /root/intel && echo 0 > /root/intel/openvino_telemetry
+RUN mkdir -p /intel && echo 0 > /intel/openvino_telemetry && chmod o+r /intel/openvino_telemetry
+
+WORKDIR /ai_edge_node
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["bash"]

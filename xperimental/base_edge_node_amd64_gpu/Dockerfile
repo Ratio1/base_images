@@ -80,7 +80,7 @@ ARG TORCH_VERSION=2.9.1
 ARG TORCHVISION_VERSION=0.24.1
 ARG TORCHAUDIO_VERSION=2.9.1
 ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cu129
-ARG TENSORRT_VERSION=10.14.1
+ARG TENSORRT_VERSION=10.14.1.48.post1
 ARG ENABLE_BITSANDBYTES=false
 ARG ENABLE_FLASH_ATTN=false
 
@@ -185,6 +185,11 @@ RUN set -eux; \
     torchaudio==${TORCHAUDIO_VERSION} \
     --extra-index-url ${TORCH_CHANNEL}; \
   uv pip install --system --no-cache --no-compile -r /tmp/requirements.txt; \
+  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -m pip install --no-cache-dir --no-compile \
+    --index-url https://pypi.nvidia.com \
+    --extra-index-url https://pypi.org/simple \
+    tensorrt-cu12-bindings==${TENSORRT_VERSION}; \
+  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -c "import site; from pathlib import Path; trt_dir = Path(site.getsitepackages()[0]) / 'tensorrt'; trt_dir.mkdir(exist_ok=True); (trt_dir / '__init__.py').write_text('from tensorrt_bindings import *\nfrom tensorrt_bindings import __version__\n')"; \
   if [ "${ENABLE_BITSANDBYTES}" = "true" ]; then \
     if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
       echo "Skipping bitsandbytes on Python ${PYTHON_VERSION}"; \

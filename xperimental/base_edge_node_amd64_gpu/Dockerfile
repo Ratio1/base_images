@@ -148,14 +148,11 @@ RUN set -eux; \
   dpkg -i /tmp/cuda-keyring.deb; \
   rm -f /tmp/cuda-keyring.deb; \
   apt-get update; \
-  if ! apt-get install -y --no-install-recommends \
+  apt-get install -y --no-install-recommends \
     libnvinfer10 \
     libnvinfer-plugin10 \
     libnvonnxparsers10 \
-    libnvparsers10 \
-    python3-libnvinfer; then \
-    apt-get install -y --no-install-recommends tensorrt python3-libnvinfer; \
-  fi; \
+    libnvinfer-bin; \
   TRT_INSTALLED_VERSION="$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)"; \
   if [ -z "${TRT_INSTALLED_VERSION}" ]; then \
     echo "TensorRT package libnvinfer10 not installed"; \

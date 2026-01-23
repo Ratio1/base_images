@@ -1,7 +1,7 @@
 # Agent Test TODO (Image Regression)
 
 Goal: enable any fresh agent to run the GPU/CPU image tests iteratively, investigate failures using online docs, and record findings in a timestamped report:
-`./image_testing/AGENT_DEBUG_RESULTS_[YYYYmmddHHMM].md`
+`./image_testing/debug_results/AGENT_DEBUG_RESULTS_[YYYYmmddHHMM].md`
 
 ## Inputs
 - GPU image name (default inside script): `ratio1/base_edge_node_amd64_gpu:dev`
@@ -24,7 +24,7 @@ If no tag is provided, each script uses its default.
 1) **Create a report file with timestamp**
 ```bash
 TS="$(date +%Y%m%d%H%M)"
-REPORT="./image_testing/AGENT_DEBUG_RESULTS_${TS}.md"
+REPORT="./image_testing/debug_results/AGENT_DEBUG_RESULTS_${TS}.md"
 printf "# Debug Results - %s\n\n" "$(date)" > "${REPORT}"
 ```
 

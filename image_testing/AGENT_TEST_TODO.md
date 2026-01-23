@@ -6,6 +6,7 @@ Goal: enable any fresh agent to run the GPU/CPU image tests iteratively, investi
 ## Inputs
 - GPU image name (default inside script): `ratio1/base_edge_node_amd64_gpu:dev`
 - CPU image name (default inside script): `ratio1/base_edge_node_amd64_cpu:dev`
+- CPU perf env overrides (optional): `CPU_TEST_BATCH`, `CPU_TEST_IN`, `CPU_TEST_HIDDEN`, `CPU_TEST_OUT`, `CPU_TEST_LAYERS`, `CPU_TEST_THREADS`
 - Scripts:
   - `./image_testing/test-gpu.sh`
   - `./image_testing/test-cpu.sh`
@@ -39,7 +40,7 @@ Add the output of the following to the report:
 ```bash
 echo "######## Extra non-python diagnostics: #########" >> "${REPORT}"
 docker run --rm --gpus=all <gpu_image_tag> nvidia-smi | tee -a "${REPORT}"
-docker run --rm <cpu_image_tag> python3 - <<'PY' | tee -a "${REPORT}"
+docker run --rm -i <cpu_image_tag> python3 - <<'PY' | tee -a "${REPORT}"
 import torch, transformers, platform
 print("platform", platform.platform())
 print("torch", torch.__version__)
@@ -55,6 +56,12 @@ except Exception as e:
     print("openvino err", e)
 PY
 echo "########## Done extra non-python diagnostics ##########" >> "${REPORT}"
+```
+If DIND `hello-world` fails, also capture:
+```bash
+docker run --rm -i <cpu_image_tag> docker info | tee -a "${REPORT}"
+docker run --rm -i <cpu_image_tag> docker version | tee -a "${REPORT}"
+docker run --rm -i <cpu_image_tag> uname -a | tee -a "${REPORT}"
 ```
 
 4) **Use online documentation to interpret errors**
@@ -80,4 +87,5 @@ Include the following sections in each `AGENT_DEBUG_RESULTS_*.md`:
 
 ## Notes
 - These scripts expect privileged DIND operation; they will attempt to run `hello-world` inside the container.
+- CPU perf sanity: OpenVINO is expected to be >= TorchScript on CPU for the default model; if a `PERF_WARN` is emitted, record it in the report.
 - Keep edits to the test scripts minimal; prefer documenting the issue and fixing the image instead.

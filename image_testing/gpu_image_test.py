@@ -212,4 +212,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+  print("========================================")
+  print("====== Running GPU image test... =======")
+  print("========================================") 
+  main()
+  print("====== Done GPU image test... =======")

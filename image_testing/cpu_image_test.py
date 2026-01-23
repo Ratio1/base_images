@@ -163,4 +163,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+  print("========================================")
+  print("====== Running CPU image test... =======")
+  print("========================================")
+  main()
+  print("====== Done CPU image test... =======")

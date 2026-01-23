@@ -37,6 +37,7 @@ printf "# Debug Results - %s\n\n" "$(date)" > "${REPORT}"
 3) **If a test fails, collect diagnostics**
 Add the output of the following to the report:
 ```bash
+echo "######## Extra non-python diagnostics: #########" >> "${REPORT}"
 docker run --rm --gpus=all <gpu_image_tag> nvidia-smi | tee -a "${REPORT}"
 docker run --rm <cpu_image_tag> python3 - <<'PY' | tee -a "${REPORT}"
 import torch, transformers, platform
@@ -53,6 +54,7 @@ try:
 except Exception as e:
     print("openvino err", e)
 PY
+echo "########## Done extra non-python diagnostics ##########" >> "${REPORT}"
 ```
 
 4) **Use online documentation to interpret errors**

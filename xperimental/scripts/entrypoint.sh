@@ -120,6 +120,109 @@ else
 	DOCKER_PORT=2375
 fi
 
+# Choose a storage driver based on host environment to avoid overlay-on-overlay failures.
+_detect_fs_type() {
+	if command -v df >/dev/null 2>&1; then
+		df -T /var/lib/docker 2>/dev/null | awk 'NR==2 {print $2}'
+	fi
+}
+_has_command() {
+	command -v "$1" >/dev/null 2>&1
+}
+_overlay_mount_test() {
+	_has_command mount || return 1
+	base="$(mktemp -d /tmp/overlayfs.XXXXXX 2>/dev/null || echo '')"
+	[ -n "$base" ] || return 1
+	mkdir -p "$base/lower" "$base/upper" "$base/work" "$base/merged" || {
+		rm -rf "$base"
+		return 1
+	}
+	touch "$base/lower/test" >/dev/null 2>&1 || true
+	if mount -t overlay overlay -o "lowerdir=$base/lower,upperdir=$base/upper,workdir=$base/work" "$base/merged" >/dev/null 2>&1; then
+		umount "$base/merged" >/dev/null 2>&1 || true
+		rm -rf "$base"
+		return 0
+	fi
+	umount "$base/merged" >/dev/null 2>&1 || true
+	rm -rf "$base"
+	return 1
+}
+_overlay2_supported() {
+	if ! grep -q overlay /proc/filesystems 2>/dev/null; then
+		if _has_command modprobe; then
+			modprobe overlay >/dev/null 2>&1 || true
+		fi
+	fi
+	grep -q overlay /proc/filesystems 2>/dev/null || return 1
+	_overlay_mount_test
+}
+_fuse_overlay_supported() {
+	_has_command fuse-overlayfs || return 1
+	[ -e /dev/fuse ] || return 1
+	return 0
+}
+_select_storage_driver() {
+	requested=""
+	for var in DOCKERD_STORAGE_DRIVER DOCKER_STORAGE_DRIVER DOCKER_DRIVER; do
+		eval val="\${$var:-}"
+		if [ -n "$val" ]; then
+			requested="$val"
+			break
+		fi
+	done
+
+	if [ -n "$requested" ]; then
+		case "$requested" in
+			overlay2)
+				if _overlay2_supported; then
+					echo "$requested"
+					return 0
+				fi
+				echo "Requested overlay2, but it is not supported; falling back." >&2
+				;;
+			fuse-overlayfs)
+				if _fuse_overlay_supported; then
+					echo "$requested"
+					return 0
+				fi
+				echo "Requested fuse-overlayfs, but it is not supported; falling back." >&2
+				;;
+			*)
+				echo "$requested"
+				return 0
+				;;
+		esac
+	fi
+
+	fs_type=$(_detect_fs_type)
+	case "$fs_type" in
+		overlay|overlayfs)
+			if _fuse_overlay_supported; then
+				echo "fuse-overlayfs"
+			else
+				echo "vfs"
+			fi
+			return 0
+			;;
+	esac
+
+	if _overlay2_supported; then
+		echo "overlay2"
+		return 0
+	fi
+	if _fuse_overlay_supported; then
+		echo "fuse-overlayfs"
+	else
+		echo "vfs"
+	fi
+}
+
+STORAGE_DRIVER=$(_select_storage_driver)
+if [ -n "$STORAGE_DRIVER" ]; then
+	echo "Using storage driver: $STORAGE_DRIVER"
+	DOCKERD_ARGS="$DOCKERD_ARGS --storage-driver=$STORAGE_DRIVER"
+fi
+
 # Remove leftover PID files to avoid startup conflicts
 find /run /var/run -iname 'docker*.pid' -delete || true
 

@@ -163,7 +163,7 @@ RUN set -eux; \
   rm -rf /var/lib/apt/lists/*; \
   ldconfig
 
-ENV PATH="/opt/python/bin:/usr/local/bin:$PATH" \
+ENV PATH="/opt/python/bin:/usr/local/bin:/usr/src/tensorrt/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/python/lib:/usr/local/lib" \
     UV_HTTP_TIMEOUT=300 \
     AI_ENV="base_edge_node_amd64_gpu" \

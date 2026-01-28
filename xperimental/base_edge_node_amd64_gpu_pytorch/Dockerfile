@@ -1,46 +1,9 @@
-FROM ubuntu:24.04 AS python-builder
-
-ARG PYTHON_VERSION=3.13.11
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    ca-certificates \
-    curl \
-    libssl-dev \
-    zlib1g-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    libffi-dev \
-    liblzma-dev \
-    libgdbm-dev \
-    libncursesw5-dev \
-    uuid-dev \
-    tk-dev \
-    xz-utils \
-  && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /tmp/python-build
-
-RUN set -eux; \
-  curl -fsSLO "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz"; \
-  tar -xzf "Python-${PYTHON_VERSION}.tgz"; \
-  cd "Python-${PYTHON_VERSION}"; \
-  ./configure --prefix=/opt/python --enable-optimizations --with-lto --enable-shared; \
-  make -j"$(nproc)"; \
-  make install; \
-  cd /tmp/python-build; \
-  rm -rf "Python-${PYTHON_VERSION}" "Python-${PYTHON_VERSION}.tgz"; \
-  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -m ensurepip; \
-  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
-
-FROM ubuntu:24.04 AS ffmpeg-builder
+FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime AS ffmpeg-builder
 
 ARG FFMPEG_VERSION=6.1.1
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/bin:/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -73,13 +36,11 @@ COPY scripts/build-ffmpeg.sh /tmp/build-ffmpeg.sh
 RUN chmod +x /tmp/build-ffmpeg.sh && \
   FFMPEG_VERSION="${FFMPEG_VERSION}" /tmp/build-ffmpeg.sh
 
-FROM ubuntu:24.04
+FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime
 
-ARG PYTHON_VERSION=3.13.11
 ARG TORCH_VERSION=2.9.1
 ARG TORCHVISION_VERSION=0.24.1
 ARG TORCHAUDIO_VERSION=2.9.1
-ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cu128
 ARG TENSORRT_VERSION=10.14.1.48.post1
 ARG ENABLE_BITSANDBYTES=false
 ARG ENABLE_FLASH_ATTN=false
@@ -91,14 +52,26 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-COPY --from=python-builder /opt/python /opt/python
 COPY --from=ffmpeg-builder /usr/local /usr/local
-COPY base_edge_node_amd64_gpu/requirements.txt /tmp/requirements.txt
+COPY base_edge_node_amd64_gpu_pytorch/requirements.txt /tmp/requirements.txt
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN set -eux; \
   chmod +x /usr/local/bin/entrypoint.sh; \
   apt-get update; \
+  UBUNTU_VERSION="$(. /etc/os-release; echo ${VERSION_ID})"; \
+  if [ "${UBUNTU_VERSION}" = "22.04" ]; then \
+    GNUTLS_PKG=libgnutls30; \
+    VPX_PKG=libvpx7; \
+    X264_PKG=libx264-163; \
+  elif [ "${UBUNTU_VERSION}" = "24.04" ]; then \
+    GNUTLS_PKG=libgnutls30t64; \
+    VPX_PKG=libvpx9; \
+    X264_PKG=libx264-164; \
+  else \
+    echo "Unsupported Ubuntu version: ${UBUNTU_VERSION}"; \
+    exit 1; \
+  fi; \
   apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -122,13 +95,13 @@ RUN set -eux; \
     libass9 \
     libfontconfig1 \
     libfreetype6 \
-    libgnutls30t64 \
+    ${GNUTLS_PKG} \
     libmp3lame0 \
     libopus0 \
     libva2 \
     libva-drm2 \
-    libvpx9 \
-    libx264-164 \
+    ${VPX_PKG} \
+    ${X264_PKG} \
     libx265-199 \
     libxml2; \
   ln -snf /usr/share/zoneinfo/$TZ /etc/localtime; echo $TZ > /etc/timezone; \
@@ -144,7 +117,8 @@ RUN set -eux; \
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list; \
   apt-get update; \
   apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io; \
-  curl -fsSLo /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb; \
+  UBUNTU_REPO="ubuntu$(printf '%s' "${UBUNTU_VERSION}" | tr -d '.')"; \
+  curl -fsSLo /tmp/cuda-keyring.deb "https://developer.download.nvidia.com/compute/cuda/repos/${UBUNTU_REPO}/x86_64/cuda-keyring_1.1-1_all.deb"; \
   dpkg -i /tmp/cuda-keyring.deb; \
   rm -f /tmp/cuda-keyring.deb; \
   apt-get update; \
@@ -163,10 +137,10 @@ RUN set -eux; \
   rm -rf /var/lib/apt/lists/*; \
   ldconfig
 
-ENV PATH="/opt/python/bin:/usr/local/bin:$PATH" \
-    LD_LIBRARY_PATH="/opt/python/lib:/usr/local/lib" \
+ENV PATH="/opt/conda/bin:/usr/local/bin:$PATH" \
+    LD_LIBRARY_PATH="/opt/conda/lib:/usr/local/lib" \
     UV_HTTP_TIMEOUT=300 \
-    AI_ENV="base_edge_node_amd64_gpu" \
+    AI_ENV="base_edge_node_amd64_gpu_pytorch" \
     AI_ENV_VER="0.2.0"
 
 RUN set -eux; \
@@ -174,47 +148,32 @@ RUN set -eux; \
   if [ -f /root/.local/bin/uv ]; then mv /root/.local/bin/uv /usr/local/bin/uv; fi; \
   if [ -f /root/.local/bin/uvx ]; then mv /root/.local/bin/uvx /usr/local/bin/uvx; fi; \
   rm -rf /root/.local; \
-  apt-get update; \
-  apt-get install -y --no-install-recommends build-essential cmake; \
-  uv pip install --system --no-cache --no-compile \
-    torch==${TORCH_VERSION} \
-    torchvision==${TORCHVISION_VERSION} \
-    torchaudio==${TORCHAUDIO_VERSION} \
-    --extra-index-url ${TORCH_CHANNEL}; \
   uv pip install --system --no-cache --no-compile -r /tmp/requirements.txt; \
-  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -m pip install --no-cache-dir --no-compile \
+  if ! /opt/conda/bin/python -c "import torchvision, torchaudio" >/dev/null 2>&1; then \
+    uv pip install --system --no-cache --no-compile \
+      torchvision==${TORCHVISION_VERSION} \
+      torchaudio==${TORCHAUDIO_VERSION}; \
+  fi; \
+  /opt/conda/bin/python -m pip install --no-cache-dir --no-compile \
     --index-url https://pypi.nvidia.com \
     --extra-index-url https://pypi.org/simple \
     tensorrt-cu12-bindings==${TENSORRT_VERSION}; \
-  LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -c "import site; from pathlib import Path; trt_dir = Path(site.getsitepackages()[0]) / 'tensorrt'; trt_dir.mkdir(exist_ok=True); (trt_dir / '__init__.py').write_text('from tensorrt_bindings import *\nfrom tensorrt_bindings import __version__\n')"; \
+  /opt/conda/bin/python -c "import site; from pathlib import Path; trt_dir = Path(site.getsitepackages()[0]) / 'tensorrt'; trt_dir.mkdir(exist_ok=True); (trt_dir / '__init__.py').write_text('from tensorrt_bindings import *\\nfrom tensorrt_bindings import __version__\\n')"; \
+  PYTHON_MAJOR_MINOR="$(/opt/conda/bin/python -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')"; \
   if [ "${ENABLE_BITSANDBYTES}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping bitsandbytes on Python ${PYTHON_VERSION}"; \
+    if [ "${PYTHON_MAJOR_MINOR}" = "3.13" ]; then \
+      echo "Skipping bitsandbytes on Python ${PYTHON_MAJOR_MINOR}"; \
     else \
       uv pip install --system --no-cache --no-compile bitsandbytes; \
     fi; \
   fi; \
   if [ "${ENABLE_FLASH_ATTN}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping flash-attn on Python ${PYTHON_VERSION}"; \
+    if [ "${PYTHON_MAJOR_MINOR}" = "3.13" ]; then \
+      echo "Skipping flash-attn on Python ${PYTHON_MAJOR_MINOR}"; \
     else \
       uv pip install --system --no-cache --no-compile flash-attn; \
     fi; \
   fi; \
-  PYTHON_MAJOR_MINOR="${PYTHON_VERSION%.*}"; \
-  rm -rf "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/test" \
-    "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/idlelib" \
-    "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/turtledemo" \
-    "/opt/python/lib/python${PYTHON_MAJOR_MINOR}/ensurepip/_bundled"; \
-  find "/opt/python/lib/python${PYTHON_MAJOR_MINOR}" -type d -name __pycache__ -prune -exec rm -rf '{}' +; \
-  find "/opt/python/lib/python${PYTHON_MAJOR_MINOR}" -type f -name '*.pyc' -delete; \
-  find /usr/local/lib -type f \( -name '*.a' -o -name '*.la' \) -delete; \
-  strip --strip-unneeded /opt/python/bin/python3.13 /usr/local/bin/ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ngrok || true; \
-  find /opt/python/lib -type f -name '*.so' -exec strip --strip-unneeded '{}' + || true; \
-  find /usr/local/lib -type f -name '*.so*' -exec strip --strip-unneeded '{}' + || true; \
-  apt-get purge -y build-essential cmake; \
-  apt-get autoremove -y; \
-  rm -rf /var/lib/apt/lists/*; \
   rm -rf /root/.cache
 
 RUN mkdir -p /root/intel && echo 0 > /root/intel/openvino_telemetry

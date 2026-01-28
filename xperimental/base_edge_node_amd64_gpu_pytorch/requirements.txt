@@ -30,4 +30,3 @@ uvicorn
 pydantic
 bs4
 web3
-nvidia-cudnn-cu12==9.10.2.21

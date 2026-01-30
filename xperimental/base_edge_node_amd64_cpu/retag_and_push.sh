@@ -12,7 +12,13 @@ TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import transforme
 
 # Normalize version information for tagging
 normalize_version() {
-  echo "$1" | tr -d '[:space:]' | sed -r 's/\+/\./g'
+  local cleaned
+  cleaned="$(echo "$1" | tr -d '[:space:]' | sed -r 's/\+/\./g')"
+  if echo "$cleaned" | grep -Eq '^[0-9]+\.[0-9]+'; then
+    echo "$cleaned" | sed -E 's/^([0-9]+)\.([0-9]+).*/\1.\2/'
+  else
+    echo "$cleaned"
+  fi
 }
 
 PYTHON_VERSION_NORMALIZED="py$(normalize_version "$PYTHON_VERSION")"

@@ -1,5 +1,7 @@
 paho-mqtt>=1.6
 pika>=1.3
+#  nvidia-ml-py is for consistency across CPU/GPU images so 
+#  the same app code can import pynvml without conditional installs
 nvidia-ml-py>=11.4
 pyyaml>=6.0
 pyarrow>=15

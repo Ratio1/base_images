@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build the image
-IMAGE_NAME_BASE="ratio1/base_edge_node"
+IMAGE_NAME_BASE="ratio1/base_edge_node_amd64_cpu"
 IMAGE_NAME=$1
 
 # Extract version information

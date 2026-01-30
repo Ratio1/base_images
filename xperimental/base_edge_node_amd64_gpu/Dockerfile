@@ -128,6 +128,7 @@ RUN set -eux; \
     libva2 \
     libva-drm2 \
     libvpx9 \
+    libxcb1 \
     libx264-164 \
     libx265-199 \
     libxml2; \

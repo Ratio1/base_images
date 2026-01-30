@@ -2,14 +2,14 @@
 
 # Build the image
 IMAGE_NAME_BASE="ratio1/base_edge_node_amd64_gpu"
-IMAGE_NAME=$1
+IMAGE_NAME="$IMAGE_NAME_BASE:latest"
 
 # Extract version information
-PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.python_version())")
-TORCH_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.__version__.split('+')[0])")
-CUDA_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.version.cuda)")
-TENSORRT_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import tensorrt as trt; print(trt.__version__)")
-TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import transformers; print(transformers.__version__)")
+PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.python_version())" | tail -n 1)
+TORCH_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.__version__.split('+')[0])" | tail -n 1)
+CUDA_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.version.cuda)" | tail -n 1)
+TENSORRT_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import tensorrt as trt; print(trt.__version__)" | tail -n 1)
+TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import transformers; print(transformers.__version__)" | tail -n 1)
 
 # Normalize version information for tagging
 normalize_version() {

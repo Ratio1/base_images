@@ -2,13 +2,13 @@
 
 # Build the image
 IMAGE_NAME_BASE="ratio1/base_edge_node_amd64_cpu"
-IMAGE_NAME=$1
+IMAGE_NAME="$IMAGE_NAME_BASE:latest"
 
 # Extract version information
-PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.python_version())")
-TORCH_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.__version__.split('+')[0])")
-ONNX_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import onnx; print(onnx.__version__)")
-TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import transformers; print(transformers.__version__)")
+PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.python_version())" | tail -n 1)
+TORCH_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.__version__.split('+')[0])" | tail -n 1)
+ONNX_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import onnx; print(onnx.__version__)" | tail -n 1)
+TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import transformers; print(transformers.__version__)" | tail -n 1)
 
 # Normalize version information for tagging
 normalize_version() {

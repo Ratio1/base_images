@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-IMAGE="${1:-ratio1/base_edge_node_amd64_gpu:dev}"
+IMAGE="${1:-ratio1/base_edge_node_amd64_gpu:latest}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 docker run --rm --gpus=all -e EE_DD=1 --privileged \

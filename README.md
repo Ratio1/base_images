@@ -1,41 +1,57 @@
-# Base Images for Edge
-Minimal, versioned Docker bases for GPU/CPU edge workloads.
+# Ratio1 Edge Node Base Images
+This repository maintains segregated base images for Ratio1 Edge Node containers, split by architecture and accelerator profile.
 
-## Layout at a Glance
-- `base_edge_node/`: Ubuntu 22.04 GPU base with ffmpeg build, Torch/Transformers/TensorRT, ngrok; `Dockerfile_cpu` is CPU-only.
-- `base_edge_node_arm64_cpu/`: Raspberry Pi–focused image with its own ffmpeg build script.
-- `base_edge_node_arm64_tegra/`: Jetson/Tegra GPU base; `retag_and_push_arm64_tegra.sh` normalizes tags after cross-arch builds.
-- `base_edge_node_dind/`: Docker-in-Docker layers (GPU and CPU) built atop edge node images; includes `entrypoint.sh`.
+## Objective
+- Keep CPU and GPU image families isolated so dependency/runtime choices remain explicit per target.
+- Enable independent build, tagging, validation, and release flows for each image family.
+- Track production-ready recipes separately from experimental and archived variants.
+- Preserve architecture segregation across generations: active `amd64` lines in root, historical `arm64/tegra` lines in `_archive/`.
 
-## Quick Start (build & tag)
+## Repository Layout
+- `base_edge_node_amd64_cpu/`: production AMD64 CPU base image.
+- `base_edge_node_amd64_gpu/`: production AMD64 GPU base image (CUDA/TensorRT stack).
+- `scripts/`: shared helpers used by image builds (`build-ffmpeg.sh`, `entrypoint.sh`).
+- `image_testing/`: CPU/GPU validation suites.
+- `xperimental/`: experimental image variants (not production baseline).
+- `_archive/`: historical image layouts (including arm64/tegra/dind generations).
+
+## Image Matrix
+- `ratio1/base_edge_node_amd64_cpu`: AMD64 CPU runtime for edge node services and model inference.
+- `ratio1/base_edge_node_amd64_gpu`: AMD64 NVIDIA GPU runtime with TensorRT-capable stack.
+- `xperimental/*`: candidate variants under evaluation.
+- `_archive/*`: deprecated or superseded definitions preserved for reference.
+
+## Build, Push, Retag
 ```bash
-# Edge node
-docker build -t ratio1/base_edge_node:dev base_edge_node
-docker build -f base_edge_node/Dockerfile_cpu -t ratio1/base_edge_node:cpu-dev base_edge_node
-./base_edge_node/retag_and_push.sh ratio1/base_edge_node:dev             # retag by versions
+# Build locally
+docker build -f base_edge_node_amd64_cpu/Dockerfile -t ratio1/base_edge_node_amd64_cpu:latest .
+docker build -f base_edge_node_amd64_gpu/Dockerfile -t ratio1/base_edge_node_amd64_gpu:latest .
 
-# Arm64 variants
-docker build -t ratio1/base_edge_node_arm64_cpu:dev base_edge_node_arm64_cpu
-(cd base_edge_node_arm64_tegra && ./retag_and_push_arm64_tegra.sh <image>) # sets up qemu, retags, pushes
+# Build + push + retag
+./build-and-push-amd64-cpu.sh
+./build-and-push-amd64-gpu.sh
 
-# Docker-in-Docker
-docker build -t ratio1/base_edge_node_dind:dev base_edge_node_dind
+# Retag existing latest images
+(cd base_edge_node_amd64_cpu && ./retag_and_push.sh ratio1/base_edge_node_amd64_cpu:latest)
+(cd base_edge_node_amd64_gpu && ./retag_and_push.sh ratio1/base_edge_node_amd64_gpu:latest)
 ```
-Tag patterns: `<arch>-py<ver>-th<ver>-tr<ver>` for edge images.
 
-## Validate Images (spot checks)
+## Tagging Conventions
+- CPU tags: `py<major.minor>-th<major.minor>-ox<major.minor>-tr<major.minor>`
+- GPU tags: `py<major.minor>-th<major.minor>-cu<major.minor>-trt<major.minor>-tr<major.minor>`
+
+## Validation
 ```bash
-docker run --rm <img> python3 - <<'PY'
-import torch, transformers, platform; print(platform.machine(), torch.__version__, transformers.__version__)
-PY
-docker run --rm <img> ffmpeg -codecs | head
-docker run --privileged -e EE_DD=true ratio1/base_edge_node_dind:dev docker info
+./image_testing/test-cpu.sh ratio1/base_edge_node_amd64_cpu:latest
+./image_testing/test-gpu.sh ratio1/base_edge_node_amd64_gpu:latest
+docker run --rm ratio1/base_edge_node_amd64_cpu:latest ffmpeg -codecs | head
+docker run --rm ratio1/base_edge_node_amd64_gpu:latest ffmpeg -codecs | head
 ```
 
-## Contributing Notes
-- Keep Dockerfile layers compact (`&& \`), clean apt caches, and match existing pinned versions unless you must bump them.
-- Scripts should use `#!/bin/bash`, `set -euo pipefail`, and quoted vars; keep them executable.
-- Follow commit style seen in history (`fix: ...`, `chore: ...`). Update READMEs/AGENTS.md when workflows change.
+## Documentation Policy
+- `AGENTS.md` is the living operations contract for this repo.
+- Critical horizontal changes must update both `AGENTS.md` and `README.md` in the same change set.
+- Horizontal changes include architecture coverage, core runtime stack, build/release workflow, tag schema, and validation contract.
 
 ## Citation
 ```bibtex

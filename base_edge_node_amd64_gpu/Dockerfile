@@ -101,6 +101,7 @@ RUN set -eux; \
   apt-get update; \
   apt-get install -y --no-install-recommends \
     ca-certificates \
+    e2fsprogs \
     curl \
     tzdata \
     nano \

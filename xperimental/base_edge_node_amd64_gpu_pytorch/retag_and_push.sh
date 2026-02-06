@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Build the image
+IMAGE_NAME_BASE="ratio1/base_edge_node_amd64_gpu_pytorch"
+IMAGE_NAME="$IMAGE_NAME_BASE:latest"
+
+# Extract version information
+PYTHON_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import platform; print(platform.python_version())" | tail -n 1)
+TORCH_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.__version__.split('+')[0])" | tail -n 1)
+CUDA_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import torch; print(torch.version.cuda)" | tail -n 1)
+TENSORRT_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import tensorrt as trt; print(trt.__version__)" | tail -n 1)
+TRANSFORMERS_VERSION=$(docker run --rm $IMAGE_NAME python3 -c "import transformers; print(transformers.__version__)" | tail -n 1)
+
+# Normalize version information for tagging
+normalize_version() {
+  local cleaned
+  cleaned="$(echo "$1" | tr -d '[:space:]' | sed -r 's/\+/\./g')"
+  if echo "$cleaned" | grep -Eq '^[0-9]+\.[0-9]+'; then
+    echo "$cleaned" | sed -E 's/^([0-9]+)\.([0-9]+).*/\1.\2/'
+  else
+    echo "$cleaned"
+  fi
+}
+
+PYTHON_VERSION_NORMALIZED="py$(normalize_version "$PYTHON_VERSION")"
+TORCH_VERSION_NORMALIZED="th$(normalize_version "$TORCH_VERSION")"
+CUDA_VERSION_NORMALIZED="cu$(normalize_version "$CUDA_VERSION")"
+TENSORRT_VERSION_NORMALIZED="trt$(normalize_version "$TENSORRT_VERSION")"
+TRANSFORMERS_VERSION_NORMALIZED="tr$(normalize_version "$TRANSFORMERS_VERSION")"
+
+# Construct tag
+FINAL_IMAGE_TAG="${PYTHON_VERSION_NORMALIZED}-${TORCH_VERSION_NORMALIZED}-${CUDA_VERSION_NORMALIZED}-${TENSORRT_VERSION_NORMALIZED}-${TRANSFORMERS_VERSION_NORMALIZED}"
+FINAL_IMAGE_NAME="$IMAGE_NAME_BASE:$FINAL_IMAGE_TAG"
+
+echo "Retagging $IMAGE_NAME to $FINAL_IMAGE_NAME"
+docker tag $IMAGE_NAME $FINAL_IMAGE_NAME
+
+echo "Pushing Docker image $FINAL_IMAGE_NAME"
+docker push $FINAL_IMAGE_NAME

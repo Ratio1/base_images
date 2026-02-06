@@ -99,6 +99,7 @@ RUN set -eux; \
   apt-get update; \
   apt-get install -y --no-install-recommends \
     ca-certificates \
+    e2fsprogs \
     curl \
     tzdata \
     nano \
@@ -126,6 +127,7 @@ RUN set -eux; \
     libva2 \
     libva-drm2 \
     libvpx9 \
+    libxcb1 \
     libx264-164 \
     libx265-199 \
     libxml2; \

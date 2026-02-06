@@ -2,7 +2,7 @@ name: Base edge node image build and push
 on: 
   push:
     paths:
-      - 'base_edge_node_amd64_cpu/**'  # Specify path to your directory
+      - 'base_edge_node_amd64_gpu/**'  # Specify path to your directory
 
 jobs:
   build-and-push-edge-node-image:
@@ -36,16 +36,19 @@ jobs:
           echo "========================================"
 
 
-      - name: Build and push CPU
+      - name: Build and push GPU
         uses: docker/build-push-action@v5
         with:
-          context: ./base_edge_node_amd64_cpu
-          file: ./base_edge_node_amd64_cpu/Dockerfile
+          # context: ./base_edge_node_amd64_gpu
+          context: .
+          file: ./base_edge_node_amd64_gpu/Dockerfile
           push: true
-          tags: "ratio1/base_edge_node_amd64:latest"
+          tags: "ratio1/base_edge_node_amd64_gpu:latest"
 
-      - name: Retag and Push CPU
+
+      - name: Retag and Push GPU
         run: |
-          cd base_edge_node_amd64_cpu/
+          cd base_edge_node_amd64_gpu/
           chmod +x retag_and_push.sh  # Ensure the script is executable
-          ./retag_and_push.sh  "ratio1/base_edge_node_amd64_cpu:latest"
+          ./retag_and_push.sh "ratio1/base_edge_node_amd64_gpu:latest"
+

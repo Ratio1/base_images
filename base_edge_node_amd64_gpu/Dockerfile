@@ -214,7 +214,7 @@ RUN set -eux; \
   strip --strip-unneeded /opt/python/bin/python3.13 /usr/local/bin/ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ngrok || true; \
   find /opt/python/lib -type f -name '*.so' -exec strip --strip-unneeded '{}' + || true; \
   find /usr/local/lib -type f -name '*.so*' -exec strip --strip-unneeded '{}' + || true; \
-  apt-get purge -y build-essential cmake; \
+  apt-get purge -y cmake; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \
   rm -rf /root/.cache

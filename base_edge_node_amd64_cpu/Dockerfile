@@ -180,7 +180,7 @@ RUN set -eux; \
       uv pip install --system --no-cache --no-compile flash-attn; \
     fi; \
   fi; \
-  apt-get purge -y build-essential cmake; \
+  apt-get purge -y cmake; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \
   rm -rf /root/.cache

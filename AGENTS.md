@@ -3,6 +3,7 @@
 ## Project Structure & Module Organization
 - `base_edge_node_amd64_cpu/`: production AMD64 CPU image (`Dockerfile`, `requirements.txt`, `retag_and_push.sh`).
 - `base_edge_node_amd64_gpu/`: production AMD64 GPU image (`Dockerfile`, `requirements.txt`, `retag_and_push.sh`).
+- `.github/workflows/`: GitHub Actions build/push workflows for the production AMD64 CPU/GPU images, including manual dispatch entrypoints.
 - `scripts/`: shared build/runtime helpers (`build-ffmpeg.sh`, `entrypoint.sh`) used by image Dockerfiles.
 - `build-and-push-amd64-cpu.sh` / `build-and-push-amd64-gpu.sh`: root entrypoints for build, push, and retag flows.
 - `image_testing/`: runtime validation scripts for CPU/GPU images.
@@ -20,6 +21,9 @@
   ./build-and-push-amd64-cpu.sh
   ./build-and-push-amd64-gpu.sh
   ```
+- GitHub Actions entrypoints:
+  - CPU: manually run `.github/workflows/base_edge_node_amd64_cpu.yaml` with `workflow_dispatch`, or let it trigger on `push` changes under `base_edge_node_amd64_cpu/**`.
+  - GPU: manually run `.github/workflows/base_edge_node_amd64_gpu.yaml` with `workflow_dispatch`, or let it trigger on `push` changes under `base_edge_node_amd64_gpu/**`.
 - Retagging:
   - CPU: `cd base_edge_node_amd64_cpu && ./retag_and_push.sh ratio1/base_edge_node_amd64_cpu:latest`
   - GPU: `cd base_edge_node_amd64_gpu && ./retag_and_push.sh ratio1/base_edge_node_amd64_gpu:latest`
@@ -55,6 +59,7 @@
 
 ## Change Ledger (Keep Updated)
 - `2026-02-06`: Established living documentation policy, added mandatory AGENTS+README sync for critical horizontal changes, and aligned structure/build guidance with segregated AMD64 CPU/GPU image families.
+- `2026-03-19`: Activated the AMD64 CPU/GPU GitHub Actions workflows as live `.yaml` files and added `workflow_dispatch` so image publish jobs can be launched manually as well as by path-based pushes.
 
 ## Commit & Pull Request Guidelines
 - Match history style: short imperative subjects with type prefixes (`fix: ...`, `chore: ...`, `feat: ...`).

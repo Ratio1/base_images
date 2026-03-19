@@ -10,6 +10,7 @@ This repository maintains segregated base images for Ratio1 Edge Node containers
 ## Repository Layout
 - `base_edge_node_amd64_cpu/`: production AMD64 CPU base image.
 - `base_edge_node_amd64_gpu/`: production AMD64 GPU base image (CUDA/TensorRT stack).
+- `.github/workflows/`: GitHub Actions workflows for CPU/GPU image build, push, and retag flows.
 - `scripts/`: shared helpers used by image builds (`build-ffmpeg.sh`, `entrypoint.sh`).
 - `image_testing/`: CPU/GPU validation suites.
 - `xperimental/`: experimental image variants (not production baseline).
@@ -35,6 +36,10 @@ docker build -f base_edge_node_amd64_gpu/Dockerfile -t ratio1/base_edge_node_amd
 (cd base_edge_node_amd64_cpu && ./retag_and_push.sh ratio1/base_edge_node_amd64_cpu:latest)
 (cd base_edge_node_amd64_gpu && ./retag_and_push.sh ratio1/base_edge_node_amd64_gpu:latest)
 ```
+
+GitHub Actions also exposes manual dispatch entrypoints for both production image families:
+- `.github/workflows/base_edge_node_amd64_cpu.yaml`: manual `workflow_dispatch` plus automatic `push` runs for `base_edge_node_amd64_cpu/**`.
+- `.github/workflows/base_edge_node_amd64_gpu.yaml`: manual `workflow_dispatch` plus automatic `push` runs for `base_edge_node_amd64_gpu/**`.
 
 ## Tagging Conventions
 - CPU tags: `py<major.minor>-th<major.minor>-ox<major.minor>-tr<major.minor>`

@@ -111,6 +111,7 @@ RUN set -eux; \
     iptables \
     iproute2 \
     kmod \
+    util-linux \
     xz-utils \
     pigz \
     unzip \

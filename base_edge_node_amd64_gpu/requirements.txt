@@ -33,4 +33,4 @@ pydantic
 bs4
 web3
 nvidia-cudnn-cu12==9.10.2.21
-faiss-gpu>=1.7.4
+faiss-cpu>=1.7.4

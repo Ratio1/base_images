@@ -31,6 +31,7 @@ onnxruntime-openvino==1.23.0
 onnxsim
 fastapi
 uvicorn
+python-multipart
 pydantic
 bs4
 web3

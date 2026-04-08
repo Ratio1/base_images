@@ -35,4 +35,4 @@ python-multipart
 pydantic
 bs4
 web3
-faiss-cpu>=1.7.4
+faiss-cpu==1.13.2

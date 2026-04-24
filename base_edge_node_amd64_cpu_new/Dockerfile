@@ -77,8 +77,6 @@ FROM ubuntu:24.04
 
 ARG PYTHON_VERSION=3.13.11
 ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cpu
-ARG ENABLE_BITSANDBYTES=false
-ARG ENABLE_FLASH_ATTN=false
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
@@ -164,20 +162,6 @@ RUN set -eux; \
     torchaudio \
     --extra-index-url ${TORCH_CHANNEL}; \
   uv pip install --system --no-cache --no-compile -r /tmp/requirements.txt; \
-  if [ "${ENABLE_BITSANDBYTES}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping bitsandbytes on Python ${PYTHON_VERSION}"; \
-    else \
-      uv pip install --system --no-cache --no-compile bitsandbytes; \
-    fi; \
-  fi; \
-  if [ "${ENABLE_FLASH_ATTN}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping flash-attn on Python ${PYTHON_VERSION}"; \
-    else \
-      uv pip install --system --no-cache --no-compile flash-attn; \
-    fi; \
-  fi; \
   apt-get purge -y cmake; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \

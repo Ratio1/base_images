@@ -77,8 +77,8 @@ FROM ubuntu:24.04
 
 ARG PYTHON_VERSION=3.13.11
 ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cu128
-ARG ENABLE_BITSANDBYTES=false
-ARG ENABLE_FLASH_ATTN=false
+ARG ENABLE_BITSANDBYTES=true
+ARG ENABLE_FLASH_ATTN=true
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
@@ -186,18 +186,17 @@ RUN set -eux; \
     --extra-index-url https://pypi.org/simple \
     tensorrt-cu12-bindings; \
   LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -c "import site; from pathlib import Path; trt_dir = Path(site.getsitepackages()[0]) / 'tensorrt'; trt_dir.mkdir(exist_ok=True); (trt_dir / '__init__.py').write_text('from tensorrt_bindings import *\nfrom tensorrt_bindings import __version__\n')"; \
+  # bitsandbytes is a GPU-oriented optional extension; enable it for test builds without a Python-version guard.
   if [ "${ENABLE_BITSANDBYTES}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping bitsandbytes on Python ${PYTHON_VERSION}"; \
-    else \
-      uv pip install --system --no-cache --no-compile bitsandbytes; \
-    fi; \
+    uv pip install --system --no-cache --no-compile bitsandbytes; \
   fi; \
+  # flash-attn needs a CUDA toolkit toolchain at build time, so only attempt it when nvcc is available.
   if [ "${ENABLE_FLASH_ATTN}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping flash-attn on Python ${PYTHON_VERSION}"; \
+    if command -v nvcc >/dev/null 2>&1; then \
+      uv pip install --system --no-cache --no-compile ninja packaging; \
+      uv pip install --system --no-cache --no-build-isolation flash-attn; \
     else \
-      uv pip install --system --no-cache --no-compile flash-attn; \
+      echo "Skipping flash-attn because nvcc is not available in the GPU test image"; \
     fi; \
   fi; \
   PYTHON_MAJOR_MINOR="${PYTHON_VERSION%.*}"; \

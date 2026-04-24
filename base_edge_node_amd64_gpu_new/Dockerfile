@@ -78,6 +78,7 @@ FROM ubuntu:24.04
 ARG PYTHON_VERSION=3.13.11
 ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cu128
 ARG CUDA_DEVEL_VERSION=12-8
+ARG FLASH_ATTN_MAX_JOBS=2
 ARG ENABLE_BITSANDBYTES=true
 ARG ENABLE_FLASH_ATTN=true
 
@@ -205,7 +206,7 @@ RUN set -eux; \
   if [ "${ENABLE_FLASH_ATTN}" = "true" ]; then \
     if command -v nvcc >/dev/null 2>&1; then \
       uv pip install --system --no-cache --no-compile ninja packaging psutil; \
-      uv pip install --system --no-cache --no-build-isolation flash-attn; \
+      MAX_JOBS="${FLASH_ATTN_MAX_JOBS}" uv pip install --system --no-cache --no-build-isolation flash-attn; \
       LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -c "import flash_attn"; \
     else \
       echo "ENABLE_FLASH_ATTN=true but nvcc is not available in the GPU test image"; \

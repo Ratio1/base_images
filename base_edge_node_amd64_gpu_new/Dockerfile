@@ -77,10 +77,12 @@ FROM ubuntu:24.04
 
 ARG PYTHON_VERSION=3.13.11
 ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cu128
+ARG CUDA_DEVEL_VERSION=12-8
 ARG ENABLE_BITSANDBYTES=true
 ARG ENABLE_FLASH_ATTN=true
 
-ENV DEBIAN_FRONTEND=noninteractive \
+ENV CUDA_ROOT="/usr/local/cuda-12.8" \
+    DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
     DOCKER_TLS_CERTDIR=/certs \
     EE_DD=false \
@@ -151,19 +153,27 @@ RUN set -eux; \
     libnvinfer10 \
     libnvinfer-plugin10 \
     libnvonnxparsers10 \
-    libnvinfer-bin; \
+    libnvinfer-bin \
+    "cuda-cudart-dev-${CUDA_DEVEL_VERSION}" \
+    "cuda-nvcc-${CUDA_DEVEL_VERSION}" \
+    "libcublas-dev-${CUDA_DEVEL_VERSION}"; \
   TRT_INSTALLED_VERSION="$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)"; \
   if [ -z "${TRT_INSTALLED_VERSION}" ]; then \
     echo "TensorRT package libnvinfer10 not installed"; \
     exit 1; \
   fi; \
   echo "TensorRT installed: ${TRT_INSTALLED_VERSION}"; \
+  if [ ! -x "${CUDA_ROOT}/bin/nvcc" ]; then \
+    echo "CUDA nvcc not installed under ${CUDA_ROOT}"; \
+    exit 1; \
+  fi; \
   rm -rf /usr/local/include /usr/local/lib/pkgconfig /usr/local/share/doc /usr/local/share/man; \
   rm -rf /var/lib/apt/lists/*; \
   ldconfig
 
-ENV PATH="/opt/python/bin:/usr/local/bin:/usr/src/tensorrt/bin:$PATH" \
-    LD_LIBRARY_PATH="/opt/python/lib:/usr/local/lib" \
+ENV CUDA_HOME="${CUDA_ROOT}" \
+    PATH="/opt/python/bin:/usr/local/bin:/usr/src/tensorrt/bin:${CUDA_ROOT}/bin:$PATH" \
+    LD_LIBRARY_PATH="/opt/python/lib:/usr/local/lib:${CUDA_ROOT}/lib64" \
     UV_HTTP_TIMEOUT=300 \
     AI_ENV="base_edge_node_amd64_gpu_new" \
     AI_ENV_VER="0.2.0"
@@ -189,14 +199,17 @@ RUN set -eux; \
   # bitsandbytes is a GPU-oriented optional extension; enable it for test builds without a Python-version guard.
   if [ "${ENABLE_BITSANDBYTES}" = "true" ]; then \
     uv pip install --system --no-cache --no-compile bitsandbytes; \
+    LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -c "import bitsandbytes"; \
   fi; \
-  # flash-attn needs a CUDA toolkit toolchain at build time, so only attempt it when nvcc is available.
+  # flash-attn needs CUDA compiler support at build time, and the same slim CUDA dev subset also supports llama.cpp CUDA builds.
   if [ "${ENABLE_FLASH_ATTN}" = "true" ]; then \
     if command -v nvcc >/dev/null 2>&1; then \
-      uv pip install --system --no-cache --no-compile ninja packaging; \
+      uv pip install --system --no-cache --no-compile ninja packaging psutil; \
       uv pip install --system --no-cache --no-build-isolation flash-attn; \
+      LD_LIBRARY_PATH="/opt/python/lib" /opt/python/bin/python3 -c "import flash_attn"; \
     else \
-      echo "Skipping flash-attn because nvcc is not available in the GPU test image"; \
+      echo "ENABLE_FLASH_ATTN=true but nvcc is not available in the GPU test image"; \
+      exit 1; \
     fi; \
   fi; \
   PYTHON_MAJOR_MINOR="${PYTHON_VERSION%.*}"; \
@@ -210,7 +223,6 @@ RUN set -eux; \
   strip --strip-unneeded /opt/python/bin/python3.13 /usr/local/bin/ffmpeg /usr/local/bin/ffprobe /usr/local/bin/ngrok || true; \
   find /opt/python/lib -type f -name '*.so' -exec strip --strip-unneeded '{}' + || true; \
   find /usr/local/lib -type f -name '*.so*' -exec strip --strip-unneeded '{}' + || true; \
-  apt-get purge -y cmake; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \
   rm -rf /root/.cache

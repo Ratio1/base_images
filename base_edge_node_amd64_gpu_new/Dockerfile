@@ -177,7 +177,7 @@ ENV CUDA_HOME="${CUDA_ROOT}" \
     LD_LIBRARY_PATH="/opt/python/lib:/usr/local/lib:${CUDA_ROOT}/lib64" \
     UV_HTTP_TIMEOUT=300 \
     AI_ENV="base_edge_node_amd64_gpu_new" \
-    AI_ENV_VER="0.2.0"
+    AI_ENV_VER="0.3.0"
 
 RUN set -eux; \
   curl -Ls https://astral.sh/uv/install.sh | sh; \
@@ -185,7 +185,10 @@ RUN set -eux; \
   if [ -f /root/.local/bin/uvx ]; then mv /root/.local/bin/uvx /usr/local/bin/uvx; fi; \
   rm -rf /root/.local; \
   apt-get update; \
-  apt-get install -y --no-install-recommends build-essential cmake; \
+  apt-get install -y --no-install-recommends build-essential cmake libopenblas-dev pkg-config; \
+  uv pip install --system --no-cache --no-compile --no-binary numpy \
+    -C 'setup-args=-Dcpu-baseline=none' \
+    "numpy>=2.1"; \
   uv pip install --system --no-cache --no-compile \
     torch \
     torchvision \

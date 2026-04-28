@@ -165,7 +165,7 @@ RUN set -eux; \
     torchaudio \
     --extra-index-url ${TORCH_CHANNEL}; \
   uv pip install --system --no-cache --no-compile -r /tmp/requirements.txt; \
-  apt-get purge -y cmake libopenblas-dev pkg-config; \
+  apt-get purge -y cmake pkg-config; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \
   rm -rf /root/.cache

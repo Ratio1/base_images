@@ -9,8 +9,8 @@ minio
 gql
 opencv-python-headless
 decord
-accelerate==0.30.1
-tokenizers==0.22.0
+accelerate
+tokenizers
 sentencepiece
 seaborn
 pandas
@@ -21,11 +21,11 @@ dropbox
 pymssql
 h5py
 unidecode
-transformers==4.57.1
-cryptography==42.0.7
+transformers
+cryptography
 onnx
-openvino==2025.1.0
-onnxruntime-openvino==1.23.0
+openvino
+onnxruntime-openvino
 onnxsim
 fastapi
 uvicorn
@@ -33,5 +33,5 @@ python-multipart
 pydantic
 bs4
 web3
-nvidia-cudnn-cu12==9.10.2.21
-faiss-cpu==1.13.2
+nvidia-cudnn-cu12
+faiss-cpu

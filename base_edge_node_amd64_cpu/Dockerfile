@@ -76,12 +76,7 @@ RUN chmod +x /tmp/build-ffmpeg.sh && \
 FROM ubuntu:24.04
 
 ARG PYTHON_VERSION=3.13.11
-ARG TORCH_VERSION=2.9.1
-ARG TORCHVISION_VERSION=0.24.1
-ARG TORCHAUDIO_VERSION=2.9.1
 ARG TORCH_CHANNEL=https://download.pytorch.org/whl/cpu
-ARG ENABLE_BITSANDBYTES=false
-ARG ENABLE_FLASH_ATTN=false
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
@@ -152,7 +147,7 @@ ENV PATH="/opt/python/bin:/usr/local/bin:$PATH" \
     LD_LIBRARY_PATH="/opt/python/lib:/usr/local/lib" \
     UV_HTTP_TIMEOUT=300 \
     AI_ENV="base_edge_node_amd64_cpu" \
-    AI_ENV_VER="0.2.0"
+    AI_ENV_VER="0.3.0"
 
 RUN set -eux; \
   curl -Ls https://astral.sh/uv/install.sh | sh; \
@@ -160,28 +155,17 @@ RUN set -eux; \
   if [ -f /root/.local/bin/uvx ]; then mv /root/.local/bin/uvx /usr/local/bin/uvx; fi; \
   rm -rf /root/.local; \
   apt-get update; \
-  apt-get install -y --no-install-recommends build-essential cmake; \
+  apt-get install -y --no-install-recommends build-essential cmake libopenblas-dev pkg-config; \
+  uv pip install --system --no-cache --no-compile --no-binary numpy \
+    -C 'setup-args=-Dcpu-baseline=none' \
+    "numpy>=2.1"; \
   uv pip install --system --no-cache --no-compile \
-    torch==${TORCH_VERSION} \
-    torchvision==${TORCHVISION_VERSION} \
-    torchaudio==${TORCHAUDIO_VERSION} \
+    torch \
+    torchvision \
+    torchaudio \
     --extra-index-url ${TORCH_CHANNEL}; \
   uv pip install --system --no-cache --no-compile -r /tmp/requirements.txt; \
-  if [ "${ENABLE_BITSANDBYTES}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping bitsandbytes on Python ${PYTHON_VERSION}"; \
-    else \
-      uv pip install --system --no-cache --no-compile bitsandbytes; \
-    fi; \
-  fi; \
-  if [ "${ENABLE_FLASH_ATTN}" = "true" ]; then \
-    if echo "${PYTHON_VERSION}" | grep -q '^3\.13'; then \
-      echo "Skipping flash-attn on Python ${PYTHON_VERSION}"; \
-    else \
-      uv pip install --system --no-cache --no-compile flash-attn; \
-    fi; \
-  fi; \
-  apt-get purge -y cmake; \
+  apt-get purge -y cmake pkg-config; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \
   rm -rf /root/.cache

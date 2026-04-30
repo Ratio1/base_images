@@ -2,11 +2,9 @@ name: Base edge node AMD64 GPU image build and push
 
 on:
   workflow_dispatch:
-  # Auto build on push disabled while the _new variant is being rolled out.
-  # Re-enable by restoring the `push:` trigger below.
-  # push:
-  #   paths:
-  #     - "base_edge_node_amd64_gpu/**"
+  push:
+    paths:
+      - "base_edge_node_amd64_gpu/**"
 
 jobs:
   build-and-push-edge-node-image:
